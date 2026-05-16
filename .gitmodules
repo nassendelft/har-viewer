@@ -1,0 +1,6 @@
+[submodule "bubbletea"]
+	path = bubbletea
+	url = https://github.com/charmbracelet/bubbletea.git
+[submodule "vendor/ftxui"]
+	path = vendor/ftxui
+	url = https://github.com/ArthurSonzogni/FTXUI
