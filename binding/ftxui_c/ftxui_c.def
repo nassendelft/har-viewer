@@ -1,3 +1,2 @@
 headers = ftxui_c_api.h
-headerFilter = ftxui_c_api.h
 package = ftxui_c

@@ -20,9 +20,27 @@ kotlin {
 
 val libPath = project.file("../binding/ftxui_c/build/libftxui_c_binding.dylib")
 val frameworkDir = layout.buildDirectory.dir("bin/macosArm64/Frameworks")
+
+tasks.register<Exec>("configureFtxuiC") {
+    workingDir = project.file("../binding/ftxui_c/build")
+    environment = System.getenv().toMutableMap() as Map<String, Any>
+    commandLine("bash", "-c", "cmake ..")
+    doFirst {
+        project.file("../binding/ftxui_c/build").mkdirs()
+    }
+}
+
+tasks.register<Exec>("buildFtxuiC") {
+    workingDir = project.file("../binding/ftxui_c/build")
+    environment = System.getenv().toMutableMap() as Map<String, Any>
+    commandLine("bash", "-c", "cmake --build .")
+    dependsOn("configureFtxuiC")
+}
+
 tasks.register<Copy>("copyFtxuiLib") {
     from(libPath)
     into(frameworkDir)
+    dependsOn("buildFtxuiC") // Make copyFtxuiLib depend on the new buildFtxuiC task
     dependsOn(project.tasks.named("cinteropFtxui_cMacosArm64"))
 }
 

@@ -1,23 +1,17 @@
-import ftxui_c.ftxui_color_t.*
 import kotlinx.cinterop.ExperimentalForeignApi
-import nl.ncaj.border
-import nl.ncaj.color
-import nl.ncaj.flex
-import nl.ncaj.ftxui
+import nl.ncaj.*
 
 @OptIn(ExperimentalForeignApi::class)
 fun main() {
+    var value = 0
     ftxui {
-        vbox {
-            hbox {
-                text("one") { border() }
-                text("two") { border().flex() }
-                text("three") { border().flex() }
+        val button = button("Click me", onClick = { value++ })
+        renderer(button) {
+            vbox {
+                text("test1 $value")
+                text("test2") { border() }
+                render(button)
             }
-
-            gauge(0.25) { color(FTXUI_COLOR_RED) }
-            gauge(0.50) { color(FTXUI_COLOR_WHITE) }
-            gauge(0.75) { color(FTXUI_COLOR_BLUE) }
         }
     }
 }

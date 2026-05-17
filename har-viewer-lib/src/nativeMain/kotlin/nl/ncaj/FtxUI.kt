@@ -1,119 +1,160 @@
 @file:OptIn(ExperimentalForeignApi::class)
+@file:Suppress("UNCHECKED_CAST")
 
 package nl.ncaj
 
 import ftxui_c.*
-import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.*
 
 @DslMarker
 annotation class FtxUIDsl
 
-// Define the component handle type alias for clarity
-typealias Component = ftxui_component_handle_t
+internal typealias ComponentHandle = ftxui_component_handle_t
+internal typealias ElementHandle = ftxui_element_handle_t
 
-typealias Modifier = Component.() -> Component
+class Component internal constructor(internal val handle: ComponentHandle)
+class Element internal constructor(internal val handle: ElementHandle)
 
-// Utility to manage component lifecycle
-fun destroyComponent(component: Component) {
-    ftxui_component_destroy(component)
-}
+typealias Decorator = Element.() -> Element
 
 @FtxUIDsl
 class FtxUIBuilder internal constructor() {
+    private var app: ftxui_app_handle_t? = null
 
-    fun text(value: String, modifier: Modifier = { this }): Component =
-        ftxui_component_text(value)!!.let(modifier)
+    fun exit() {
+        app?.let { ftxui_app_exit(it) }
+    }
 
-    fun gauge(value: Double, modifier: Modifier = { this }): Component =
-        ftxui_component_gauge(value)!!.let(modifier)
-
-    fun hbox(block: HBoxBuilder.() -> Unit): Component =
-        HBoxBuilder().apply(block).build()
-
-    fun vbox(block: VBoxBuilder.() -> Unit): Component =
-        VBoxBuilder().apply(block).build()
-
-    internal fun build(component: Component) {
-        val app = ftxui_app_create_fullscreen()
-        ftxui_app_loop(app, component)
+    internal fun build(root: Component) {
+        val app = ftxui_app_create_fullscreen()!!
+        this.app = app
+        ftxui_app_loop(app, root.handle)
         ftxui_app_destroy(app)
     }
 }
 
-fun ftxui(block: FtxUIBuilder.() -> Component) {
+fun ftxui(content: FtxUIBuilder.() -> Component) {
     val builder = FtxUIBuilder()
-    val component = builder.block()
+    val component = builder.content()
     builder.build(component)
 }
 
-// --- Decorators (Chainable) ---
+fun Element.border() =
+    Element(ftxui_element_border(this.handle)!!)
 
-fun Component.border(): Component =
-    ftxui_component_border(this)!!
+fun Element.flex() =
+    Element(ftxui_element_flex(this.handle)!!)
 
-fun Component.flex(): Component =
-    ftxui_component_flex(this)!!
+fun Element.color(color: ftxui_color_t) =
+    Element(ftxui_element_color(this.handle, color)!!)
 
-fun Component.color(color: ftxui_color_t): Component =
-    ftxui_component_color(this, color)!!
+fun Element.bold() =
+    Element(ftxui_element_bold(this.handle)!!)
 
-// --- Base class for container builders ---
+fun Element.inverted() =
+    Element(ftxui_element_inverted(this.handle)!!)
 
-@FtxUIDsl
-abstract class BaseContainerBuilder internal constructor() {
-    protected val components = mutableListOf<Component>()
+fun Element.underlined() =
+    Element(ftxui_element_underlined(this.handle)!!)
 
-    internal fun add(component: Component) {
-        components.add(component)
-    }
+fun Element.window(title: Element) =
+    Element(ftxui_element_window(title.handle, this.handle)!!)
 
-    internal abstract fun build(): Component
+fun Component.destroy() =
+    ftxui_component_destroy(handle)
 
-    fun text(value: String, modifier: Modifier = { this }): Component {
-        val component = ftxui_component_text(value)!!.let(modifier)
-        this.add(component)
-        return component
-    }
+fun text(text: String) = Element(ftxui_element_text(text)!!)
 
-    fun gauge(value: Double, modifier: Modifier = { this }): Component {
-        val component = ftxui_component_gauge(value)!!.let(modifier)
-        this.add(component)
-        return component
-    }
-
-    fun hbox(block: HBoxBuilder.() -> Unit): Component {
-        val component = HBoxBuilder().apply(block).build()
-        this.add(component)
-        return component
-    }
-
-    fun vbox(block: VBoxBuilder.() -> Unit): Component {
-        val component = VBoxBuilder().apply(block).build()
-        this.add(component)
-        return component
-    }
+fun vbox(content: ElementContainerBuilder.() -> Unit): Element = memScoped {
+    val elements = ElementContainerBuilder().apply(content).build()
+    val array = allocArray<ftxui_element_handle_tVar>(elements.size)
+    elements.forEachIndexed { index, element -> array[index] = element.handle }
+    Element(ftxui_element_vbox(array, elements.size)!!)
 }
 
-// --- Context builders for VBox and HBox --
+fun hbox(content: ElementContainerBuilder.() -> Unit): Element = memScoped {
+    val elements = ElementContainerBuilder().apply(content).build()
+    val array = allocArray<ftxui_element_handle_tVar>(elements.size)
+    elements.forEachIndexed { index, element -> array[index] = element.handle }
+    Element(ftxui_element_hbox(array, elements.size)!!)
+}
+
+fun button(
+    label: String,
+    onClick: () -> Unit,
+): Component {
+    val stableRef = StableRef.create(onClick)
+    val callback = staticCFunction { refPtr: COpaquePointer? ->
+        refPtr?.asStableRef<() -> Unit>()?.get()?.invoke()
+        Unit
+    }
+    return Component(ftxui_component_button(label, callback, stableRef.asCPointer())!!)
+}
+
+fun horizontal(block: ContainerBuilder.() -> Unit): Component {
+    val container = ftxui_component_container_horizontal()!!
+    val children = ContainerBuilder().apply(block).build()
+    for (component in children) ftxui_container_add(container, component.handle)
+    return Component(container)
+}
+
+fun vertical(block: ContainerBuilder.() -> Unit): Component {
+    val container = ftxui_component_container_vertical()!!
+    val children = ContainerBuilder().apply(block).build()
+    for (component in children) ftxui_container_add(container, component.handle)
+    return Component(container)
+}
+
+fun renderer(
+    child: Component? = null,
+    callback: () -> Element
+): Component {
+    val stableRef = StableRef.create(callback)
+    val renderCallback = staticCFunction { refPtr: COpaquePointer? ->
+        val block = refPtr!!.asStableRef<() -> Element>().get()
+        block().handle
+    } as ftxui_render_callback_t
+    return Component(ftxui_component_renderer(child?.handle, renderCallback, stableRef.asCPointer())!!)
+}
+
+fun Component.render() =
+    Element(ftxui_component_render(this.handle)!!)
 
 @FtxUIDsl
-class VBoxBuilder internal constructor() : BaseContainerBuilder() {
-    override fun build(): Component {
-        val container = ftxui_component_container_vertical()!!
-        for (component in components) {
-            ftxui_container_add(container, component)
-        }
-        return container
+class ElementContainerBuilder internal constructor() {
+    private val elements = mutableListOf<Element>()
+
+    fun text(value: String, decorator: Decorator = { this }) {
+        elements.add(decorator(nl.ncaj.text(value)))
     }
+
+    fun hbox(decorator: Decorator = { this }, content: ElementContainerBuilder.() -> Unit) {
+        elements.add(decorator(hbox(content)))
+    }
+
+    fun vbox(decorator: Decorator = { this }, content: ElementContainerBuilder.() -> Unit) {
+        elements.add(decorator(vbox(content)))
+    }
+
+    fun render(child: Component) = child.render().also { elements.add(it) }
+
+    internal fun build() = elements
 }
 
 @FtxUIDsl
-class HBoxBuilder internal constructor() : BaseContainerBuilder() {
-    override fun build(): Component {
-        val container = ftxui_component_container_horizontal()!!
-        for (component in components) {
-            ftxui_container_add(container, component)
-        }
-        return container
-    }
+class ContainerBuilder internal constructor() {
+    private val components = mutableListOf<Component>()
+
+    fun button(
+        label: String,
+        onClick: () -> Unit,
+    ) = nl.ncaj.button(label, onClick).also { components.add(it) }
+
+    fun horizontal(content: ContainerBuilder.() -> Unit) =
+        nl.ncaj.horizontal(content).also { components.add(it) }
+
+    fun vertical(content: ContainerBuilder.() -> Unit) =
+        nl.ncaj.vertical(content).also { components.add(it) }
+
+    fun build() = components
 }
