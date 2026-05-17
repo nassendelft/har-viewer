@@ -32,7 +32,45 @@ typedef enum {
     FTXUI_COLOR_CYAN,
     FTXUI_COLOR_WHITE,
     FTXUI_COLOR_DEFAULT,
+    FTXUI_COLOR_GRAY_LIGHT,
+    FTXUI_COLOR_GRAY_DARK,
 } ftxui_color_t;
+
+typedef struct {
+    bool enabled;
+    ftxui_color_t inactive;
+    ftxui_color_t active;
+} ftxui_animated_color_option_t;
+
+typedef struct {
+    ftxui_animated_color_option_t background;
+    ftxui_animated_color_option_t foreground;
+} ftxui_animated_colors_option_t;
+
+typedef struct {
+    const char* label;
+    bool state;
+    bool active;
+    bool focused;
+    int index;
+} ftxui_entry_state_t;
+
+typedef ftxui_element_handle_t (*ftxui_button_transform_t)(ftxui_entry_state_t state, void* userdata);
+
+typedef struct {
+    ftxui_animated_colors_option_t animated_colors;
+    ftxui_button_transform_t transform;
+    void* transform_userdata;
+} ftxui_button_option_t;
+
+typedef enum {
+    FTXUI_BORDER_STYLE_LIGHT,
+    FTXUI_BORDER_STYLE_DASHED,
+    FTXUI_BORDER_STYLE_HEAVY,
+    FTXUI_BORDER_STYLE_DOUBLE,
+    FTXUI_BORDER_STYLE_ROUNDED,
+    FTXUI_BORDER_STYLE_EMPTY,
+} ftxui_border_style_t;
 
 /**
  * @brief Initializes the FTXUI interactive application (ScreenInteractive).
@@ -40,6 +78,13 @@ typedef enum {
  * @return ftxui_app_handle_t A handle to the initialized app, or NULL on failure.
  */
 ftxui_app_handle_t ftxui_app_create_fullscreen();
+
+/**
+ * @brief Initializes the FTXUI interactive application (ScreenInteractive) to fit the component.
+ *
+ * @return ftxui_app_handle_t A handle to the initialized app, or NULL on failure.
+ */
+ftxui_app_handle_t ftxui_app_create_fit_component();
 
 /**
  * @brief Creates a simple text element.
@@ -139,6 +184,79 @@ ftxui_element_handle_t ftxui_element_gauge(double value);
 ftxui_element_handle_t ftxui_element_separator();
 
 /**
+ * @brief Creates a light separator element.
+ *
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_light();
+
+/**
+ * @brief Creates a dashed separator element.
+ *
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_dashed();
+
+/**
+ * @brief Creates a heavy separator element.
+ *
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_heavy();
+
+/**
+ * @brief Creates a double separator element.
+ *
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_double();
+
+/**
+ * @brief Creates an empty separator element.
+ *
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_empty();
+
+/**
+ * @brief Creates a styled separator element.
+ *
+ * @param style The border style to use.
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_styled(ftxui_border_style_t style);
+
+/**
+ * @brief Creates a separator element with a custom character.
+ *
+ * @param character The character to use for the separator.
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_character(const char* character);
+
+/**
+ * @brief Creates a horizontal selector separator.
+ *
+ * @param left The left position.
+ * @param right The right position.
+ * @param unselected_color The color when not selected.
+ * @param selected_color The color when selected.
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_hselector(float left, float right, ftxui_color_t unselected_color, ftxui_color_t selected_color);
+
+/**
+ * @brief Creates a vertical selector separator.
+ *
+ * @param up The up position.
+ * @param down The down position.
+ * @param unselected_color The color when not selected.
+ * @param selected_color The color when selected.
+ * @return ftxui_element_handle_t The separator element handle.
+ */
+ftxui_element_handle_t ftxui_element_separator_vselector(float up, float down, ftxui_color_t unselected_color, ftxui_color_t selected_color);
+
+/**
  * @brief Wraps an element with a window.
  * 
  * @param title The title element.
@@ -157,6 +275,54 @@ ftxui_element_handle_t ftxui_element_window(ftxui_element_handle_t title, ftxui_
  * @return ftxui_element_handle_t A new element with a border.
  */
 ftxui_element_handle_t ftxui_element_border(ftxui_element_handle_t element);
+
+/**
+ * @brief Wraps an element with a light border.
+ *
+ * @param element The element to wrap.
+ * @return ftxui_element_handle_t A new element with a light border.
+ */
+ftxui_element_handle_t ftxui_element_border_light(ftxui_element_handle_t element);
+
+/**
+ * @brief Wraps an element with a dashed border.
+ *
+ * @param element The element to wrap.
+ * @return ftxui_element_handle_t A new element with a dashed border.
+ */
+ftxui_element_handle_t ftxui_element_border_dashed(ftxui_element_handle_t element);
+
+/**
+ * @brief Wraps an element with a heavy border.
+ *
+ * @param element The element to wrap.
+ * @return ftxui_element_handle_t A new element with a heavy border.
+ */
+ftxui_element_handle_t ftxui_element_border_heavy(ftxui_element_handle_t element);
+
+/**
+ * @brief Wraps an element with a double border.
+ *
+ * @param element The element to wrap.
+ * @return ftxui_element_handle_t A new element with a double border.
+ */
+ftxui_element_handle_t ftxui_element_border_double(ftxui_element_handle_t element);
+
+/**
+ * @brief Wraps an element with a rounded border.
+ *
+ * @param element The element to wrap.
+ * @return ftxui_element_handle_t A new element with a rounded border.
+ */
+ftxui_element_handle_t ftxui_element_border_rounded(ftxui_element_handle_t element);
+
+/**
+ * @brief Wraps an element with an empty border.
+ *
+ * @param element The element to wrap.
+ * @return ftxui_element_handle_t A new element with an empty border.
+ */
+ftxui_element_handle_t ftxui_element_border_empty(ftxui_element_handle_t element);
 
 /**
  * @brief Makes an element flexible, allowing it to expand or shrink.
@@ -199,8 +365,49 @@ ftxui_element_handle_t ftxui_element_underlined(ftxui_element_handle_t element);
  */
 ftxui_element_handle_t ftxui_element_color(ftxui_element_handle_t element, ftxui_color_t color);
 
-// --- Component Creation ---
+// --- Util ---
 
+/**
+ * @brief Centers an element horizontally.
+ *
+ * @param element The element to center.
+ * @return ftxui_element_handle_t A new element centered horizontally.
+ */
+ftxui_element_handle_t ftxui_element_hcenter(ftxui_element_handle_t element);
+
+/**
+ * @brief Centers an element vertically.
+ *
+ * @param element The element to center.
+ * @return ftxui_element_handle_t A new element centered vertically.
+ */
+ftxui_element_handle_t ftxui_element_vcenter(ftxui_element_handle_t element);
+
+/**
+ * @brief Centers an element both horizontally and vertically.
+ *
+ * @param element The element to center.
+ * @return ftxui_element_handle_t A new element centered.
+ */
+ftxui_element_handle_t ftxui_element_center(ftxui_element_handle_t element);
+
+/**
+ * @brief Aligns an element to the right.
+ *
+ * @param element The element to align.
+ * @return ftxui_element_handle_t A new element aligned to the right.
+ */
+ftxui_element_handle_t ftxui_element_align_right(ftxui_element_handle_t element);
+
+/**
+ * @brief Creates an element that does nothing, effectively hiding the child.
+ *
+ * @param element The element to hide.
+ * @return ftxui_element_handle_t An empty element.
+ */
+ftxui_element_handle_t ftxui_element_nothing(ftxui_element_handle_t element);
+
+// --- Component Creation ---
 
 /**
  * @brief Creates a button component.
@@ -210,6 +417,52 @@ ftxui_element_handle_t ftxui_element_color(ftxui_element_handle_t element, ftxui
  * @return ftxui_component_handle_t The button component handle.
  */
 ftxui_component_handle_t ftxui_component_button(const char* label, void (*on_click)(void*), void* userdata);
+
+/**
+ * @brief Creates a button component with options.
+ * 
+ * @param label The label of the button.
+ * @param on_click The callback function when the button is clicked.
+ * @param options The options for the button.
+ * @return ftxui_component_handle_t The button component handle.
+ */
+ftxui_component_handle_t ftxui_component_button_with_options(const char* label, void (*on_click)(void*), void* userdata, ftxui_button_option_t options);
+
+/**
+ * @brief Returns the default button options (Simple).
+ * 
+ * @return ftxui_button_option_t The default button options.
+ */
+ftxui_button_option_t ftxui_button_option_simple();
+
+/**
+ * @brief Returns the ASCII button options.
+ * 
+ * @return ftxui_button_option_t The ASCII button options.
+ */
+ftxui_button_option_t ftxui_button_option_ascii();
+
+/**
+ * @brief Returns the border button options.
+ * 
+ * @return ftxui_button_option_t The border button options.
+ */
+ftxui_button_option_t ftxui_button_option_border();
+
+/**
+ * @brief Returns the animated button options.
+ * 
+ * @return ftxui_button_option_t The animated button options.
+ */
+ftxui_button_option_t ftxui_button_option_animated();
+
+/**
+ * @brief Returns the animated button options with a specific color.
+ * 
+ * @param color The color to use for the animation.
+ * @return ftxui_button_option_t The animated button options.
+ */
+ftxui_button_option_t ftxui_button_option_animated_with_color(ftxui_color_t color);
 
 /**
  * @brief Creates a checkbox component.
