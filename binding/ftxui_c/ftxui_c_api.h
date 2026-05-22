@@ -12,6 +12,7 @@ extern "C" {
 typedef void* ftxui_app_handle_t;
 typedef void* ftxui_component_handle_t;
 typedef void* ftxui_element_handle_t;
+typedef void* ftxui_color_handle_t; // New opaque handle for Color class
 
 /**
  * @brief A callback function for rendering a component.
@@ -22,24 +23,440 @@ typedef ftxui_element_handle_t (*ftxui_render_callback_t)(void* userdata);
 
 // --- Colors ---
 
+// C Enums for FTXUI Color Palettes
 typedef enum {
-    FTXUI_COLOR_BLACK,
-    FTXUI_COLOR_RED,
-    FTXUI_COLOR_GREEN,
-    FTXUI_COLOR_YELLOW,
-    FTXUI_COLOR_BLUE,
-    FTXUI_COLOR_MAGENTA,
-    FTXUI_COLOR_CYAN,
-    FTXUI_COLOR_WHITE,
-    FTXUI_COLOR_DEFAULT,
-    FTXUI_COLOR_GRAY_LIGHT,
-    FTXUI_COLOR_GRAY_DARK,
-} ftxui_color_t;
+  FTXUI_PALETTE1_DEFAULT = 0, // Transparent
+} ftxui_palette1_t;
+
+typedef enum {
+  FTXUI_PALETTE16_BLACK = 0,
+  FTXUI_PALETTE16_RED = 1,
+  FTXUI_PALETTE16_GREEN = 2,
+  FTXUI_PALETTE16_YELLOW = 3,
+  FTXUI_PALETTE16_BLUE = 4,
+  FTXUI_PALETTE16_MAGENTA = 5,
+  FTXUI_PALETTE16_CYAN = 6,
+  FTXUI_PALETTE16_GRAY_LIGHT = 7,
+  FTXUI_PALETTE16_GRAY_DARK = 8,
+  FTXUI_PALETTE16_RED_LIGHT = 9,
+  FTXUI_PALETTE16_GREEN_LIGHT = 10,
+  FTXUI_PALETTE16_YELLOW_LIGHT = 11,
+  FTXUI_PALETTE16_BLUE_LIGHT = 12,
+  FTXUI_PALETTE16_MAGENTA_LIGHT = 13,
+  FTXUI_PALETTE16_CYAN_LIGHT = 14,
+  FTXUI_PALETTE16_WHITE = 15,
+} ftxui_palette16_t;
+
+typedef enum {
+  FTXUI_PALETTE256_AQUAMARINE1 = 122,
+  FTXUI_PALETTE256_AQUAMARINE1BIS = 86,
+  FTXUI_PALETTE256_AQUAMARINE3 = 79,
+  FTXUI_PALETTE256_BLUE1 = 21,
+  FTXUI_PALETTE256_BLUE3 = 19,
+  FTXUI_PALETTE256_BLUE3BIS = 20,
+  FTXUI_PALETTE256_BLUEVIOLET = 57,
+  FTXUI_PALETTE256_CADETBLUE = 72,
+  FTXUI_PALETTE256_CADETBLUEBIS = 73,
+  FTXUI_PALETTE256_CHARTREUSE1 = 118,
+  FTXUI_PALETTE256_CHARTREUSE2 = 112,
+  FTXUI_PALETTE256_CHARTREUSE2BIS = 82,
+  FTXUI_PALETTE256_CHARTREUSE3 = 70,
+  FTXUI_PALETTE256_CHARTREUSE3BIS = 76,
+  FTXUI_PALETTE256_CHARTREUSE4 = 64,
+  FTXUI_PALETTE256_CORNFLOWERBLUE = 69,
+  FTXUI_PALETTE256_CORNSILK1 = 230,
+  FTXUI_PALETTE256_CYAN1 = 51,
+  FTXUI_PALETTE256_CYAN2 = 50,
+  FTXUI_PALETTE256_CYAN3 = 43,
+  FTXUI_PALETTE256_DARKBLUE = 18,
+  FTXUI_PALETTE256_DARKCYAN = 36,
+  FTXUI_PALETTE256_DARKGOLDENROD = 136,
+  FTXUI_PALETTE256_DARKGREEN = 22,
+  FTXUI_PALETTE256_DARKKHAKI = 143,
+  FTXUI_PALETTE256_DARKMAGENTA = 90,
+  FTXUI_PALETTE256_DARKMAGENTABIS = 91,
+  FTXUI_PALETTE256_DARKOLIVEGREEN1 = 191,
+  FTXUI_PALETTE256_DARKOLIVEGREEN1BIS = 192,
+  FTXUI_PALETTE256_DARKOLIVEGREEN2 = 155,
+  FTXUI_PALETTE256_DARKOLIVEGREEN3 = 107,
+  FTXUI_PALETTE256_DARKOLIVEGREEN3BIS = 113,
+  FTXUI_PALETTE256_DARKOLIVEGREEN3TER = 149,
+  FTXUI_PALETTE256_DARKORANGE = 208,
+  FTXUI_PALETTE256_DARKORANGE3 = 130,
+  FTXUI_PALETTE256_DARKORANGE3BIS = 166,
+  FTXUI_PALETTE256_DARKRED = 52,
+  FTXUI_PALETTE256_DARKREDBIS = 88,
+  FTXUI_PALETTE256_DARKSEAGREEN = 108,
+  FTXUI_PALETTE256_DARKSEAGREEN1 = 158,
+  FTXUI_PALETTE256_DARKSEAGREEN1BIS = 193,
+  FTXUI_PALETTE256_DARKSEAGREEN2 = 151,
+  FTXUI_PALETTE256_DARKSEAGREEN2BIS = 157,
+  FTXUI_PALETTE256_DARKSEAGREEN3 = 115,
+  FTXUI_PALETTE256_DARKSEAGREEN3BIS = 150,
+  FTXUI_PALETTE256_DARKSEAGREEN4 = 65,
+  FTXUI_PALETTE256_DARKSEAGREEN4BIS = 71,
+  FTXUI_PALETTE256_DARKSLATEGRAY1 = 123,
+  FTXUI_PALETTE256_DARKSLATEGRAY2 = 87,
+  FTXUI_PALETTE256_DARKSLATEGRAY3 = 116,
+  FTXUI_PALETTE256_DARKTURQUOISE = 44,
+  FTXUI_PALETTE256_DARKVIOLET = 128,
+  FTXUI_PALETTE256_DARKVIOLETBIS = 92,
+  FTXUI_PALETTE256_DEEPPINK1 = 198,
+  FTXUI_PALETTE256_DEEPPINK1BIS = 199,
+  FTXUI_PALETTE256_DEEPPINK2 = 197,
+  FTXUI_PALETTE256_DEEPPINK3 = 161,
+  FTXUI_PALETTE256_DEEPPINK3BIS = 162,
+  FTXUI_PALETTE256_DEEPPINK4 = 125,
+  FTXUI_PALETTE256_DEEPPINK4BIS = 89,
+  FTXUI_PALETTE256_DEEPPINK4TER = 53,
+  FTXUI_PALETTE256_DEEPSKYBLUE1 = 39,
+  FTXUI_PALETTE256_DEEPSKYBLUE2 = 38,
+  FTXUI_PALETTE256_DEEPSKYBLUE3 = 31,
+  FTXUI_PALETTE256_DEEPSKYBLUE3BIS = 32,
+  FTXUI_PALETTE256_DEEPSKYBLUE4 = 23,
+  FTXUI_PALETTE256_DEEPSKYBLUE4BIS = 24,
+  FTXUI_PALETTE256_DEEPSKYBLUE4TER = 25,
+  FTXUI_PALETTE256_DODGERBLUE1 = 33,
+  FTXUI_PALETTE256_DODGERBLUE2 = 27,
+  FTXUI_PALETTE256_DODGERBLUE3 = 26,
+  FTXUI_PALETTE256_GOLD1 = 220,
+  FTXUI_PALETTE256_GOLD3 = 142,
+  FTXUI_PALETTE256_GOLD3BIS = 178,
+  FTXUI_PALETTE256_GREEN1 = 46,
+  FTXUI_PALETTE256_GREEN3 = 34,
+  FTXUI_PALETTE256_GREEN3BIS = 40,
+  FTXUI_PALETTE256_GREEN4 = 28,
+  FTXUI_PALETTE256_GREENYELLOW = 154,
+  FTXUI_PALETTE256_GREY0 = 16,
+  FTXUI_PALETTE256_GREY100 = 231,
+  FTXUI_PALETTE256_GREY11 = 234,
+  FTXUI_PALETTE256_GREY15 = 235,
+  FTXUI_PALETTE256_GREY19 = 236,
+  FTXUI_PALETTE256_GREY23 = 237,
+  FTXUI_PALETTE256_GREY27 = 238,
+  FTXUI_PALETTE256_GREY3 = 232,
+  FTXUI_PALETTE256_GREY30 = 239,
+  FTXUI_PALETTE256_GREY35 = 240,
+  FTXUI_PALETTE256_GREY37 = 59,
+  FTXUI_PALETTE256_GREY39 = 241,
+  FTXUI_PALETTE256_GREY42 = 242,
+  FTXUI_PALETTE256_GREY46 = 243,
+  FTXUI_PALETTE256_GREY50 = 244,
+  FTXUI_PALETTE256_GREY53 = 102,
+  FTXUI_PALETTE256_GREY54 = 245,
+  FTXUI_PALETTE256_GREY58 = 246,
+  FTXUI_PALETTE256_GREY62 = 247,
+  FTXUI_PALETTE256_GREY63 = 139,
+  FTXUI_PALETTE256_GREY66 = 248,
+  FTXUI_PALETTE256_GREY69 = 145,
+  FTXUI_PALETTE256_GREY7 = 233,
+  FTXUI_PALETTE256_GREY70 = 249,
+  FTXUI_PALETTE256_GREY74 = 250,
+  FTXUI_PALETTE256_GREY78 = 251,
+  FTXUI_PALETTE256_GREY82 = 252,
+  FTXUI_PALETTE256_GREY84 = 188,
+  FTXUI_PALETTE256_GREY85 = 253,
+  FTXUI_PALETTE256_GREY89 = 254,
+  FTXUI_PALETTE256_GREY93 = 255,
+  FTXUI_PALETTE256_HONEYDEW2 = 194,
+  FTXUI_PALETTE256_HOTPINK = 205,
+  FTXUI_PALETTE256_HOTPINK2 = 169,
+  FTXUI_PALETTE256_HOTPINK3 = 132,
+  FTXUI_PALETTE256_HOTPINK3BIS = 168,
+  FTXUI_PALETTE256_HOTPINKBIS = 206,
+  FTXUI_PALETTE256_INDIANRED = 131,
+  FTXUI_PALETTE256_INDIANRED1 = 203,
+  FTXUI_PALETTE256_INDIANRED1BIS = 204,
+  FTXUI_PALETTE256_INDIANREDBIS = 167,
+  FTXUI_PALETTE256_KHAKI1 = 228,
+  FTXUI_PALETTE256_KHAKI3 = 185,
+  FTXUI_PALETTE256_LIGHTCORAL = 210,
+  FTXUI_PALETTE256_LIGHTCYAN1BIS = 195,
+  FTXUI_PALETTE256_LIGHTCYAN3 = 152,
+  FTXUI_PALETTE256_LIGHTGOLDENROD1 = 227,
+  FTXUI_PALETTE256_LIGHTGOLDENROD2 = 186,
+  FTXUI_PALETTE256_LIGHTGOLDENROD2BIS = 221,
+  FTXUI_PALETTE256_LIGHTGOLDENROD2TER = 222,
+  FTXUI_PALETTE256_LIGHTGOLDENROD3 = 179,
+  FTXUI_PALETTE256_LIGHTGREEN = 119,
+  FTXUI_PALETTE256_LIGHTGREENBIS = 120,
+  FTXUI_PALETTE256_LIGHTPINK1 = 217,
+  FTXUI_PALETTE256_LIGHTPINK3 = 174,
+  FTXUI_PALETTE256_LIGHTPINK4 = 95,
+  FTXUI_PALETTE256_LIGHTSALMON1 = 216,
+  FTXUI_PALETTE256_LIGHTSALMON3 = 137,
+  FTXUI_PALETTE256_LIGHTSALMON3BIS = 173,
+  FTXUI_PALETTE256_LIGHTSEAGREEN = 37,
+  FTXUI_PALETTE256_LIGHTSKYBLUE1 = 153,
+  FTXUI_PALETTE256_LIGHTSKYBLUE3 = 109,
+  FTXUI_PALETTE256_LIGHTSKYBLUE3BIS = 110,
+  FTXUI_PALETTE256_LIGHTSLATEBLUE = 105,
+  FTXUI_PALETTE256_LIGHTSLATEGREY = 103,
+  FTXUI_PALETTE256_LIGHTSTEELBLUE = 147,
+  FTXUI_PALETTE256_LIGHTSTEELBLUE1 = 189,
+  FTXUI_PALETTE256_LIGHTSTEELBLUE3 = 146,
+  FTXUI_PALETTE256_LIGHTYELLOW3 = 187,
+  FTXUI_PALETTE256_MAGENTA1 = 201,
+  FTXUI_PALETTE256_MAGENTA2 = 165,
+  FTXUI_PALETTE256_MAGENTA2BIS = 200,
+  FTXUI_PALETTE256_MAGENTA3 = 127,
+  FTXUI_PALETTE256_MAGENTA3BIS = 163,
+  FTXUI_PALETTE256_MAGENTA3TER = 164,
+  FTXUI_PALETTE256_MEDIUMORCHID = 134,
+  FTXUI_PALETTE256_MEDIUMORCHID1 = 171,
+  FTXUI_PALETTE256_MEDIUMORCHID1BIS = 207,
+  FTXUI_PALETTE256_MEDIUMORCHID3 = 133,
+  FTXUI_PALETTE256_MEDIUMPURPLE = 104,
+  FTXUI_PALETTE256_MEDIUMPURPLE1 = 141,
+  FTXUI_PALETTE256_MEDIUMPURPLE2 = 135,
+  FTXUI_PALETTE256_MEDIUMPURPLE2BIS = 140,
+  FTXUI_PALETTE256_MEDIUMPURPLE3 = 97,
+  FTXUI_PALETTE256_MEDIUMPURPLE3BIS = 98,
+  FTXUI_PALETTE256_MEDIUMPURPLE4 = 60,
+  FTXUI_PALETTE256_MEDIUMSPRINGGREEN = 49,
+  FTXUI_PALETTE256_MEDIUMTURQUOISE = 80,
+  FTXUI_PALETTE256_MEDIUMVIOLETRED = 126,
+  FTXUI_PALETTE256_MISTYROSE1 = 224,
+  FTXUI_PALETTE256_MISTYROSE3 = 181,
+  FTXUI_PALETTE256_NAVAJOWHITE1 = 223,
+  FTXUI_PALETTE256_NAVAJOWHITE3 = 144,
+  FTXUI_PALETTE256_NAVYBLUE = 17,
+  FTXUI_PALETTE256_ORANGE1 = 214,
+  FTXUI_PALETTE256_ORANGE3 = 172,
+  FTXUI_PALETTE256_ORANGE4 = 58,
+  FTXUI_PALETTE256_ORANGE4BIS = 94,
+  FTXUI_PALETTE256_ORANGERED1 = 202,
+  FTXUI_PALETTE256_ORCHID = 170,
+  FTXUI_PALETTE256_ORCHID1 = 213,
+  FTXUI_PALETTE256_ORCHID2 = 212,
+  FTXUI_PALETTE256_PALEGREEN1 = 121,
+  FTXUI_PALETTE256_PALEGREEN1BIS = 156,
+  FTXUI_PALETTE256_PALEGREEN3 = 114,
+  FTXUI_PALETTE256_PALEGREEN3BIS = 77,
+  FTXUI_PALETTE256_PALETURQUOISE1 = 159,
+  FTXUI_PALETTE256_PALETURQUOISE4 = 66,
+  FTXUI_PALETTE256_PALEVIOLETRED1 = 211,
+  FTXUI_PALETTE256_PINK1 = 218,
+  FTXUI_PALETTE256_PINK3 = 175,
+  FTXUI_PALETTE256_PLUM1 = 219,
+  FTXUI_PALETTE256_PLUM2 = 183,
+  FTXUI_PALETTE256_PLUM3 = 176,
+  FTXUI_PALETTE256_PLUM4 = 96,
+  FTXUI_PALETTE256_PURPLE = 129,
+  FTXUI_PALETTE256_PURPLE3 = 56,
+  FTXUI_PALETTE256_PURPLE4 = 54,
+  FTXUI_PALETTE256_PURPLE4BIS = 55,
+  FTXUI_PALETTE256_PURPLEBIS = 93,
+  FTXUI_PALETTE256_RED1 = 196,
+  FTXUI_PALETTE256_RED3 = 124,
+  FTXUI_PALETTE256_RED3BIS = 160,
+  FTXUI_PALETTE256_ROSYBROWN = 138,
+  FTXUI_PALETTE256_ROYALBLUE1 = 63,
+  FTXUI_PALETTE256_SALMON1 = 209,
+  FTXUI_PALETTE256_SANDYBROWN = 215,
+  FTXUI_PALETTE256_SEAGREEN1 = 84,
+  FTXUI_PALETTE256_SEAGREEN1BIS = 85,
+  FTXUI_PALETTE256_SEAGREEN2 = 83,
+  FTXUI_PALETTE256_SEAGREEN3 = 78,
+  FTXUI_PALETTE256_SKYBLUE1 = 117,
+  FTXUI_PALETTE256_SKYBLUE2 = 111,
+  FTXUI_PALETTE256_SKYBLUE3 = 74,
+  FTXUI_PALETTE256_SLATEBLUE1 = 99,
+  FTXUI_PALETTE256_SLATEBLUE3 = 61,
+  FTXUI_PALETTE256_SLATEBLUE3BIS = 62,
+  FTXUI_PALETTE256_SPRINGGREEN1 = 48,
+  FTXUI_PALETTE256_SPRINGGREEN2 = 42,
+  FTXUI_PALETTE256_SPRINGGREEN2BIS = 47,
+  FTXUI_PALETTE256_SPRINGGREEN3 = 35,
+  FTXUI_PALETTE256_SPRINGGREEN3BIS = 41,
+  FTXUI_PALETTE256_SPRINGGREEN4 = 29,
+  FTXUI_PALETTE256_STEELBLUE = 67,
+  FTXUI_PALETTE256_STEELBLUE1 = 75,
+  FTXUI_PALETTE256_STEELBLUE1BIS = 81,
+  FTXUI_PALETTE256_STEELBLUE3 = 68,
+  FTXUI_PALETTE256_TAN = 180,
+  FTXUI_PALETTE256_THISTLE1 = 225,
+  FTXUI_PALETTE256_THISTLE3 = 182,
+  FTXUI_PALETTE256_TURQUOISE2 = 45,
+  FTXUI_PALETTE256_TURQUOISE4 = 30,
+  FTXUI_PALETTE256_VIOLET = 177,
+  FTXUI_PALETTE256_WHEAT1 = 229,
+  FTXUI_PALETTE256_WHEAT4 = 101,
+  FTXUI_PALETTE256_YELLOW1 = 226,
+  FTXUI_PALETTE256_YELLOW2 = 190,
+  FTXUI_PALETTE256_YELLOW3 = 148,
+  FTXUI_PALETTE256_YELLOW3BIS = 184,
+  FTXUI_PALETTE256_YELLOW4 = 100,
+  FTXUI_PALETTE256_YELLOW4BIS = 106,
+} ftxui_palette256_t;
+
+/**
+ * @brief Creates a default (transparent) Color object.
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_default();
+
+/**
+ * @brief Creates a Color object from RGB values.
+ * @param r Red component (0-255).
+ * @param g Green component (0-255).
+ * @param b Blue component (0-255).
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_rgb(uint8_t r, uint8_t g, uint8_t b);
+
+/**
+ * @brief Creates a Color object from RGBA values.
+ * @param r Red component (0-255).
+ * @param g Green component (0-255).
+ * @param b Blue component (0-255).
+ * @param a Alpha component (0-255).
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
+/**
+ * @brief Creates a Color object from HSV values.
+ * @param h Hue component (0-255).
+ * @param s Saturation component (0-255).
+ * @param v Value component (0-255).
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_hsv(uint8_t h, uint8_t s, uint8_t v);
+
+/**
+ * @brief Creates a Color object from HSVA values.
+ * @param h Hue component (0-255).
+ * @param s Saturation component (0-255).
+ * @param v Value component (0-255).
+ * @param a Alpha component (0-255).
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_hsva(uint8_t h, uint8_t s, uint8_t v, uint8_t a);
+
+/**
+ * @brief Creates a Color object from a 1-bit palette index.
+ * @param index The 1-bit palette index.
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_palette1(ftxui_palette1_t index);
+
+/**
+ * @brief Creates a Color object from a 16-bit palette index.
+ * @param index The 16-bit palette index.
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_palette16(ftxui_palette16_t index);
+
+/**
+ * @brief Creates a Color object from a 256-bit palette index.
+ * @param index The 256-bit palette index.
+ * @return A handle to the new Color object.
+ */
+ftxui_color_handle_t ftxui_color_palette256(ftxui_palette256_t index);
+
+/**
+ * @brief Interpolates between two colors.
+ * @param t The interpolation factor (0.0 to 1.0).
+ * @param a The first color.
+ * @param b The second color.
+ * @return A handle to the new interpolated Color object.
+ */
+ftxui_color_handle_t ftxui_color_interpolate(float t, ftxui_color_handle_t a, ftxui_color_handle_t b);
+
+/**
+ * @brief Blends two colors.
+ * @param lhs The left-hand side color.
+ * @param rhs The right-hand side color.
+ * @return A handle to the new blended Color object.
+ */
+ftxui_color_handle_t ftxui_color_blend(ftxui_color_handle_t lhs, ftxui_color_handle_t rhs);
+
+/**
+ * @brief Checks if a color is opaque.
+ * @param color The color to check.
+ * @return True if the color is opaque, false otherwise.
+ */
+bool ftxui_color_is_opaque(ftxui_color_handle_t color);
+
+/**
+ * @brief Compares two colors for equality.
+ * @param lhs The left-hand side color.
+ * @param rhs The right-hand side color.
+ * @return True if the colors are equal, false otherwise.
+ */
+bool ftxui_color_equals(ftxui_color_handle_t lhs, ftxui_color_handle_t rhs);
+
+/**
+ * @brief Compares two colors for inequality.
+ * @param lhs The left-hand side color.
+ * @param rhs The right-hand side color.
+ * @return True if the colors are not equal, false otherwise.
+ */
+bool ftxui_color_not_equals(ftxui_color_handle_t lhs, ftxui_color_handle_t rhs);
+
+/**
+ * @brief Returns a string representation of the color.
+ * The returned string must be freed using free().
+ * @param color The color object.
+ * @param is_background_color True if the color is used as a background color.
+ * @return A dynamically allocated string representing the color.
+ */
+char* ftxui_color_print(ftxui_color_handle_t color, bool is_background_color);
+
+/**
+ * @brief Destroys a Color object and frees its memory.
+ * @param color The handle to the Color object to destroy.
+ */
+void ftxui_color_destroy(ftxui_color_handle_t color);
+
+/**
+ * @brief Easing function for animations.
+ * @param progress A value between 0.0 and 1.0 representing the animation progress.
+ * @return The eased progress value.
+ */
+typedef float (*ftxui_easing_function_t)(float progress);
+
+typedef enum {
+    FTXUI_EASING_LINEAR,
+    FTXUI_EASING_QUADRATIC_IN,
+    FTXUI_EASING_QUADRATIC_OUT,
+    FTXUI_EASING_QUADRATIC_IN_OUT,
+    FTXUI_EASING_CUBIC_IN,
+    FTXUI_EASING_CUBIC_OUT,
+    FTXUI_EASING_CUBIC_IN_OUT,
+    FTXUI_EASING_QUARTIC_IN,
+    FTXUI_EASING_QUARTIC_OUT,
+    FTXUI_EASING_QUARTIC_IN_OUT,
+    FTXUI_EASING_QUINTIC_IN,
+    FTXUI_EASING_QUINTIC_OUT,
+    FTXUI_EASING_QUINTIC_IN_OUT,
+    FTXUI_EASING_SINE_IN,
+    FTXUI_EASING_SINE_OUT,
+    FTXUI_EASING_SINE_IN_OUT,
+    FTXUI_EASING_CIRCULAR_IN,
+    FTXUI_EASING_CIRCULAR_OUT,
+    FTXUI_EASING_CIRCULAR_IN_OUT,
+    FTXUI_EASING_EXPONENTIAL_IN,
+    FTXUI_EASING_EXPONENTIAL_OUT,
+    FTXUI_EASING_EXPONENTIAL_IN_OUT,
+    FTXUI_EASING_ELASTIC_IN,
+    FTXUI_EASING_ELASTIC_OUT,
+    FTXUI_EASING_ELASTIC_IN_OUT,
+    FTXUI_EASING_BACK_IN,
+    FTXUI_EASING_BACK_OUT,
+    FTXUI_EASING_BACK_IN_OUT,
+    FTXUI_EASING_BOUNCE_IN,
+    FTXUI_EASING_BOUNCE_OUT,
+    FTXUI_EASING_BOUNCE_IN_OUT,
+} ftxui_easing_function_type_t;
 
 typedef struct {
     bool enabled;
-    ftxui_color_t inactive;
-    ftxui_color_t active;
+    ftxui_color_handle_t inactive;
+    ftxui_color_handle_t active;
+    int duration_ms;
+    ftxui_easing_function_type_t easing_function_type;
 } ftxui_animated_color_option_t;
 
 typedef struct {
@@ -243,7 +660,7 @@ ftxui_element_handle_t ftxui_element_separator_character(const char* character);
  * @param selected_color The color when selected.
  * @return ftxui_element_handle_t The separator element handle.
  */
-ftxui_element_handle_t ftxui_element_separator_hselector(float left, float right, ftxui_color_t unselected_color, ftxui_color_t selected_color);
+ftxui_element_handle_t ftxui_element_separator_hselector(float left, float right, ftxui_color_handle_t unselected_color, ftxui_color_handle_t selected_color);
 
 /**
  * @brief Creates a vertical selector separator.
@@ -254,7 +671,7 @@ ftxui_element_handle_t ftxui_element_separator_hselector(float left, float right
  * @param selected_color The color when selected.
  * @return ftxui_element_handle_t The separator element handle.
  */
-ftxui_element_handle_t ftxui_element_separator_vselector(float up, float down, ftxui_color_t unselected_color, ftxui_color_t selected_color);
+ftxui_element_handle_t ftxui_element_separator_vselector(float up, float down, ftxui_color_handle_t unselected_color, ftxui_color_handle_t selected_color);
 
 /**
  * @brief Wraps an element with a window.
@@ -363,7 +780,16 @@ ftxui_element_handle_t ftxui_element_underlined(ftxui_element_handle_t element);
  * @param color The color to apply.
  * @return ftxui_element_handle_t A new element with the specified color.
  */
-ftxui_element_handle_t ftxui_element_color(ftxui_element_handle_t element, ftxui_color_t color);
+ftxui_element_handle_t ftxui_element_color(ftxui_element_handle_t element, ftxui_color_handle_t color);
+
+/**
+ * @brief Sets the background color of an element.
+ *
+ * @param element The element to color.
+ * @param color The color to apply.
+ * @return ftxui_element_handle_t A new element with the specified color.
+ */
+ftxui_element_handle_t ftxui_element_bgcolor(ftxui_element_handle_t element, ftxui_color_handle_t color);
 
 // --- Util ---
 
@@ -407,6 +833,14 @@ ftxui_element_handle_t ftxui_element_align_right(ftxui_element_handle_t element)
  */
 ftxui_element_handle_t ftxui_element_nothing(ftxui_element_handle_t element);
 
+/**
+ * @brief Returns the easing function for a given type.
+ *
+ * @param type The type of easing function.
+ * @return ftxui_easing_function_t The easing function.
+ */
+ftxui_easing_function_t ftxui_easing_function_get(ftxui_easing_function_type_t type);
+
 // --- Component Creation ---
 
 /**
@@ -420,7 +854,7 @@ ftxui_component_handle_t ftxui_component_button(const char* label, void (*on_cli
 
 /**
  * @brief Creates a button component with options.
- * 
+ *
  * @param label The label of the button.
  * @param on_click The callback function when the button is clicked.
  * @param options The options for the button.
@@ -450,19 +884,15 @@ ftxui_button_option_t ftxui_button_option_ascii();
 ftxui_button_option_t ftxui_button_option_border();
 
 /**
- * @brief Returns the animated button options.
+ * @brief Returns the animated button options with background and foreground colors.
  * 
- * @return ftxui_button_option_t The animated button options.
+ * @param background The background color.
+ * @param foreground The foreground color.
+ * @param background_active The background active color.
+ * @param foreground_active The foreground active color.
+ * @return ftxui_button_option_t The button options.
  */
-ftxui_button_option_t ftxui_button_option_animated();
-
-/**
- * @brief Returns the animated button options with a specific color.
- * 
- * @param color The color to use for the animation.
- * @return ftxui_button_option_t The animated button options.
- */
-ftxui_button_option_t ftxui_button_option_animated_with_color(ftxui_color_t color);
+ftxui_button_option_t ftxui_button_option_animated(ftxui_color_handle_t background, ftxui_color_handle_t foreground, ftxui_color_handle_t background_active, ftxui_color_handle_t foreground_active);
 
 /**
  * @brief Creates a checkbox component.

@@ -1,6 +1,6 @@
 package nl.ncaj.examples
 
-import kotlinx.cinterop.*
+import kotlinx.cinterop.ExperimentalForeignApi
 import nl.ncaj.*
 
 @OptIn(ExperimentalForeignApi::class)
