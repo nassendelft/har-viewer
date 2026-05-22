@@ -307,6 +307,13 @@ typedef enum {
     FTXUI_CONSTRAINT_EQUAL,          ///< The size must be equal to the given value.
 } ftxui_constraint_t;
 
+typedef enum {
+    FTXUI_DIRECTION_UP,
+    FTXUI_DIRECTION_DOWN,
+    FTXUI_DIRECTION_LEFT,
+    FTXUI_DIRECTION_RIGHT,
+} ftxui_direction_t;
+
 /**
  * @brief Creates a default (transparent) Color object.
  * @return A handle to the new Color object.
@@ -835,8 +842,6 @@ ftxui_element_handle_t ftxui_element_frame(ftxui_element_handle_t element);
  */
 ftxui_element_handle_t ftxui_element_set_size(ftxui_element_handle_t element, ftxui_width_or_height_t width_or_height, ftxui_constraint_t constraint_type, int value);
 
-// --- Util ---
-
 /**
  * @brief Centers an element horizontally.
  *
@@ -868,6 +873,31 @@ ftxui_element_handle_t ftxui_element_center(ftxui_element_handle_t element);
  * @return ftxui_element_handle_t A new element aligned to the right.
  */
 ftxui_element_handle_t ftxui_element_align_right(ftxui_element_handle_t element);
+
+
+/**
+ * @brief Makes an element dim.
+ *
+ * @param element The element to make dim.
+ * @return ftxui_element_handle_t A new element with dim properties.
+ */
+ftxui_element_handle_t ftxui_element_dim(ftxui_element_handle_t element);
+
+/**
+ * @brief Makes an element blink.
+ *
+ * @param element The element to make blink.
+ * @return ftxui_element_handle_t A new element with blink properties.
+ */
+ftxui_element_handle_t ftxui_element_blink(ftxui_element_handle_t element);
+
+/**
+ * @brief Makes an element strikethrough.
+ *
+ * @param element The element to make strikethrough.
+ * @return ftxui_element_handle_t A new element with strikethrough properties.
+ */
+ftxui_element_handle_t ftxui_element_strikethrough(ftxui_element_handle_t element);
 
 /**
  * @brief Creates an element that does nothing, effectively hiding the child.
@@ -1131,6 +1161,275 @@ void ftxui_container_add(ftxui_component_handle_t container, ftxui_component_han
  */
 ftxui_element_handle_t ftxui_component_render(ftxui_component_handle_t component);
 
+// --- Component Decorators ---
+
+/**
+ * @brief Wraps a component with a border.
+ *
+ * @param component The component to wrap.
+ * @return ftxui_component_handle_t A new component with a border.
+ */
+ftxui_component_handle_t ftxui_component_border(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component with a light border.
+ *
+ * @param component The component to wrap.
+ * @return ftxui_component_handle_t A new component with a light border.
+ */
+ftxui_component_handle_t ftxui_component_border_light(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component with a dashed border.
+ *
+ * @param component The component to wrap.
+ * @return ftxui_component_handle_t A new component with a dashed border.
+ */
+ftxui_component_handle_t ftxui_component_border_dashed(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component with a heavy border.
+ *
+ * @param component The component to wrap.
+ * @return ftxui_component_handle_t A new component with a heavy border.
+ */
+ftxui_component_handle_t ftxui_component_border_heavy(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component with a double border.
+ *
+ * @param component The component to wrap.
+ * @return ftxui_component_handle_t A new component with a double border.
+ */
+ftxui_component_handle_t ftxui_component_border_double(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component with a rounded border.
+ *
+ * @param component The component to wrap.
+ * @return ftxui_component_handle_t A new component with a rounded border.
+ */
+ftxui_component_handle_t ftxui_component_border_rounded(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component with an empty border.
+ *
+ * @param component The component to wrap.
+ * @return ftxui_component_handle_t A new component with an empty border.
+ */
+ftxui_component_handle_t ftxui_component_border_empty(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component in a frame, allowing it to be scrolled.
+ *
+ * @param component The component to wrap in a frame.
+ * @return ftxui_component_handle_t A new component wrapped in a frame.
+ */
+ftxui_component_handle_t ftxui_component_frame(ftxui_component_handle_t component);
+
+/**
+ * @brief Makes a component flexible, allowing it to expand or shrink.
+ *
+ * @param component The component to make flexible.
+ * @return ftxui_component_handle_t A new component with flex properties.
+ */
+ftxui_component_handle_t ftxui_component_flex(ftxui_component_handle_t component);
+
+/**
+ * @brief Makes a component bold.
+ *
+ * @param component The component to make bold.
+ * @return ftxui_component_handle_t A new component with bold properties.
+ */
+ftxui_component_handle_t ftxui_component_bold(ftxui_component_handle_t component);
+
+/**
+ * @brief Makes a component inverted.
+ *
+ * @param component The component to make inverted.
+ * @return ftxui_component_handle_t A new component with inverted properties.
+ */
+ftxui_component_handle_t ftxui_component_inverted(ftxui_component_handle_t component);
+
+/**
+ * @brief Makes a component underlined.
+ *
+ * @param component The component to make underlined.
+ * @return ftxui_component_handle_t A new component with underlined properties.
+ */
+ftxui_component_handle_t ftxui_component_underlined(ftxui_component_handle_t component);
+
+/**
+ * @brief Sets the foreground color of a component.
+ *
+ * @param component The component to color.
+ * @param color The color to apply.
+ * @return ftxui_component_handle_t A new component with the specified color.
+ */
+ftxui_component_handle_t ftxui_component_color(ftxui_component_handle_t component, ftxui_color_handle_t color);
+
+/**
+ * @brief Sets the background color of a component.
+ *
+ * @param component The component to color.
+ * @param color The color to apply.
+ * @return ftxui_component_handle_t A new component with the specified color.
+ */
+ftxui_component_handle_t ftxui_component_bgcolor(ftxui_component_handle_t component, ftxui_color_handle_t color);
+
+/**
+ * @brief Adds a vertical scroll indicator to a component.
+ *
+ * @param component The component to add the scroll indicator to.
+ * @return ftxui_component_handle_t A new component with a vertical scroll indicator.
+ */
+ftxui_component_handle_t ftxui_component_vscroll_indicator(ftxui_component_handle_t component);
+
+/**
+ * @brief Applies size constraints to a component.
+ *
+ * @param component The component to apply constraints to.
+ * @param width_or_height Specifies whether to constrain width or height.
+ * @param constraint_type The type of constraint to apply.
+ * @param value The value for the constraint.
+ * @return ftxui_component_handle_t A new component with the specified size constraints.
+ */
+ftxui_component_handle_t ftxui_component_set_size(ftxui_component_handle_t component, ftxui_width_or_height_t width_or_height, ftxui_constraint_t constraint_type, int value);
+
+/**
+ * @brief Centers a component horizontally.
+ *
+ * @param component The component to center.
+ * @return ftxui_component_handle_t A new component centered horizontally.
+ */
+ftxui_component_handle_t ftxui_component_hcenter(ftxui_component_handle_t component);
+
+/**
+ * @brief Centers a component vertically.
+ *
+ * @param component The component to center.
+ * @return ftxui_component_handle_t A new component centered vertically.
+ */
+ftxui_component_handle_t ftxui_component_vcenter(ftxui_component_handle_t component);
+
+/**
+ * @brief Centers a component both horizontally and vertically.
+ *
+ * @param component The component to center.
+ * @return ftxui_component_handle_t A new component centered.
+ */
+ftxui_component_handle_t ftxui_component_center(ftxui_component_handle_t component);
+
+/**
+ * @brief Aligns a component to the right.
+ *
+ * @param component The component to align.
+ * @return ftxui_component_handle_t A new component aligned to the right.
+ */
+ftxui_component_handle_t ftxui_component_align_right(ftxui_component_handle_t component);
+
+
+/**
+ * @brief Makes a component dim.
+ *
+ * @param component The component to make dim.
+ * @return ftxui_component_handle_t A new component with dim properties.
+ */
+ftxui_component_handle_t ftxui_component_dim(ftxui_component_handle_t component);
+
+/**
+ * @brief Makes a component blink.
+ *
+ * @param component The component to make blink.
+ * @return ftxui_component_handle_t A new component with blink properties.
+ */
+ftxui_component_handle_t ftxui_component_blink(ftxui_component_handle_t component);
+
+/**
+ * @brief Makes a component strikethrough.
+ *
+ * @param component The component to make strikethrough.
+ * @return ftxui_component_handle_t A new component with strikethrough properties.
+ */
+ftxui_component_handle_t ftxui_component_strikethrough(ftxui_component_handle_t component);
+
+/**
+ * @brief Creates a component that does nothing, effectively hiding the child.
+ *
+ * @param component The component to hide.
+ * @return ftxui_component_handle_t An empty component.
+ */
+ftxui_component_handle_t ftxui_component_nothing(ftxui_component_handle_t component);
+
+/**
+ * @brief Wraps a component to track hover state.
+ *
+ * @param component The component to wrap.
+ * @param hover A pointer to a boolean that stores the hover state.
+ * @return ftxui_component_handle_t A new component that tracks hover state.
+ */
+ftxui_component_handle_t ftxui_component_hoverable(ftxui_component_handle_t component, bool* hover);
+
+// --- Additional Element Creation ---
+
+ftxui_element_handle_t ftxui_element_vtext(const char* text);
+ftxui_element_handle_t ftxui_element_spinner(int charset_index, int image_index);
+ftxui_element_handle_t ftxui_element_paragraph(const char* text);
+ftxui_element_handle_t ftxui_element_paragraph_align_left(const char* text);
+ftxui_element_handle_t ftxui_element_paragraph_align_right(const char* text);
+ftxui_element_handle_t ftxui_element_paragraph_align_center(const char* text);
+ftxui_element_handle_t ftxui_element_paragraph_align_justify(const char* text);
+ftxui_element_handle_t ftxui_element_empty();
+
+ftxui_element_handle_t ftxui_element_gauge_left(double value);
+ftxui_element_handle_t ftxui_element_gauge_right(double value);
+ftxui_element_handle_t ftxui_element_gauge_up(double value);
+ftxui_element_handle_t ftxui_element_gauge_down(double value);
+ftxui_element_handle_t ftxui_element_gauge_direction(double value, ftxui_direction_t direction);
+
+ftxui_element_handle_t ftxui_element_dbox(ftxui_element_handle_t* elements, int count);
+ftxui_element_handle_t ftxui_element_hflow(ftxui_element_handle_t* elements, int count);
+ftxui_element_handle_t ftxui_element_vflow(ftxui_element_handle_t* elements, int count);
+
+ftxui_element_handle_t ftxui_element_flex_grow(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_flex_shrink(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_xflex(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_xflex_grow(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_xflex_shrink(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_yflex(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_yflex_grow(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_yflex_shrink(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_notflex(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_filler();
+
+ftxui_element_handle_t ftxui_element_xframe(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_yframe(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_focus(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_focus_cursor_block(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_focus_cursor_block_blinking(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_focus_cursor_bar(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_focus_cursor_bar_blinking(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_focus_cursor_underline(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_focus_cursor_underline_blinking(ftxui_element_handle_t element);
+
+ftxui_element_handle_t ftxui_element_italic(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_underlined_double(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_automerge(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_hyperlink(const char* link, ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_hscroll_indicator(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_clear_under(ftxui_element_handle_t element);
+
+ftxui_element_handle_t ftxui_element_border_styled(ftxui_element_handle_t element, ftxui_border_style_t style);
+ftxui_element_handle_t ftxui_element_border_styled_color(ftxui_element_handle_t element, ftxui_border_style_t style, ftxui_color_handle_t color);
+ftxui_element_handle_t ftxui_element_border_colored(ftxui_element_handle_t element, ftxui_color_handle_t color);
+
+ftxui_element_handle_t ftxui_element_selection_style_reset(ftxui_element_handle_t element);
+ftxui_element_handle_t ftxui_element_selection_color(ftxui_element_handle_t element, ftxui_color_handle_t color);
+ftxui_element_handle_t ftxui_element_selection_background_color(ftxui_element_handle_t element, ftxui_color_handle_t color);
+ftxui_element_handle_t ftxui_element_selection_foreground_color(ftxui_element_handle_t element, ftxui_color_handle_t color);
+
+ftxui_element_handle_t ftxui_element_focus_position(ftxui_element_handle_t element, int x, int y);
+ftxui_element_handle_t ftxui_element_focus_position_relative(ftxui_element_handle_t element, float x, float y);
 
 #ifdef __cplusplus
 }

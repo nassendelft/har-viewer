@@ -4,6 +4,7 @@
 #include <ftxui/component/animation.hpp> // Include for animation easing functions
 #include <ftxui/screen/color.hpp> // Include for ftxui::Color
 #include <ftxui/dom/elements.hpp> // Include for ftxui::size
+#include <ftxui/dom/direction.hpp>
 #include <memory>
 #include <vector>
 #include <string.h> // For strdup
@@ -425,6 +426,25 @@ ftxui_element_handle_t ftxui_element_align_right(ftxui_element_handle_t element)
     });
 }
 
+
+ftxui_element_handle_t ftxui_element_dim(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return std::move(el) | ftxui::dim;
+    });
+}
+
+ftxui_element_handle_t ftxui_element_blink(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return std::move(el) | ftxui::blink;
+    });
+}
+
+ftxui_element_handle_t ftxui_element_strikethrough(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return std::move(el) | ftxui::strikethrough;
+    });
+}
+
 ftxui_element_handle_t ftxui_element_nothing(ftxui_element_handle_t element) {
     return apply_element_modifier(element, [](ftxui::Element el) {
         return ftxui::nothing(std::move(el));
@@ -432,6 +452,339 @@ ftxui_element_handle_t ftxui_element_nothing(ftxui_element_handle_t element) {
 }
 
 // -- END util elements
+
+// -- START additional elements
+
+ftxui_element_handle_t ftxui_element_vtext(const char* text) {
+    return create_element_wrapper(ftxui::vtext(text));
+}
+
+ftxui_element_handle_t ftxui_element_spinner(int charset_index, int image_index) {
+    return create_element_wrapper(ftxui::spinner(charset_index, image_index));
+}
+
+ftxui_element_handle_t ftxui_element_paragraph(const char* text) {
+    return create_element_wrapper(ftxui::paragraph(text));
+}
+
+ftxui_element_handle_t ftxui_element_paragraph_align_left(const char* text) {
+    return create_element_wrapper(ftxui::paragraphAlignLeft(text));
+}
+
+ftxui_element_handle_t ftxui_element_paragraph_align_right(const char* text) {
+    return create_element_wrapper(ftxui::paragraphAlignRight(text));
+}
+
+ftxui_element_handle_t ftxui_element_paragraph_align_center(const char* text) {
+    return create_element_wrapper(ftxui::paragraphAlignCenter(text));
+}
+
+ftxui_element_handle_t ftxui_element_paragraph_align_justify(const char* text) {
+    return create_element_wrapper(ftxui::paragraphAlignJustify(text));
+}
+
+ftxui_element_handle_t ftxui_element_empty() {
+    return create_element_wrapper(ftxui::emptyElement());
+}
+
+ftxui_element_handle_t ftxui_element_gauge_left(double value) {
+    return create_element_wrapper(ftxui::gaugeLeft(static_cast<float>(value)));
+}
+
+ftxui_element_handle_t ftxui_element_gauge_right(double value) {
+    return create_element_wrapper(ftxui::gaugeRight(static_cast<float>(value)));
+}
+
+ftxui_element_handle_t ftxui_element_gauge_up(double value) {
+    return create_element_wrapper(ftxui::gaugeUp(static_cast<float>(value)));
+}
+
+ftxui_element_handle_t ftxui_element_gauge_down(double value) {
+    return create_element_wrapper(ftxui::gaugeDown(static_cast<float>(value)));
+}
+
+ftxui_element_handle_t ftxui_element_gauge_direction(double value, ftxui_direction_t direction) {
+    ftxui::Direction dir;
+    switch (direction) {
+        case FTXUI_DIRECTION_UP: dir = ftxui::Direction::Up; break;
+        case FTXUI_DIRECTION_DOWN: dir = ftxui::Direction::Down; break;
+        case FTXUI_DIRECTION_LEFT: dir = ftxui::Direction::Left; break;
+        case FTXUI_DIRECTION_RIGHT: dir = ftxui::Direction::Right; break;
+        default: dir = ftxui::Direction::Right; break;
+    }
+    return create_element_wrapper(ftxui::gaugeDirection(static_cast<float>(value), dir));
+}
+
+ftxui_element_handle_t ftxui_element_dbox(ftxui_element_handle_t* elements, int count) {
+    ftxui::Elements children;
+    for (int i = 0; i < count; ++i) {
+        auto* wrapper = static_cast<FTXUIElementWrapper*>(elements[i]);
+        if (wrapper) {
+            children.push_back(std::move(wrapper->element));
+            delete wrapper;
+        }
+    }
+    return create_element_wrapper(ftxui::dbox(std::move(children)));
+}
+
+ftxui_element_handle_t ftxui_element_hflow(ftxui_element_handle_t* elements, int count) {
+    ftxui::Elements children;
+    for (int i = 0; i < count; ++i) {
+        auto* wrapper = static_cast<FTXUIElementWrapper*>(elements[i]);
+        if (wrapper) {
+            children.push_back(std::move(wrapper->element));
+            delete wrapper;
+        }
+    }
+    return create_element_wrapper(ftxui::hflow(std::move(children)));
+}
+
+ftxui_element_handle_t ftxui_element_vflow(ftxui_element_handle_t* elements, int count) {
+    ftxui::Elements children;
+    for (int i = 0; i < count; ++i) {
+        auto* wrapper = static_cast<FTXUIElementWrapper*>(elements[i]);
+        if (wrapper) {
+            children.push_back(std::move(wrapper->element));
+            delete wrapper;
+        }
+    }
+    return create_element_wrapper(ftxui::vflow(std::move(children)));
+}
+
+ftxui_element_handle_t ftxui_element_flex_grow(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::flex_grow(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_flex_shrink(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::flex_shrink(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_xflex(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::xflex(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_xflex_grow(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::xflex_grow(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_xflex_shrink(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::xflex_shrink(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_yflex(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::yflex(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_yflex_grow(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::yflex_grow(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_yflex_shrink(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::yflex_shrink(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_notflex(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::notflex(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_filler() {
+    return create_element_wrapper(ftxui::filler());
+}
+
+ftxui_element_handle_t ftxui_element_xframe(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::xframe(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_yframe(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::yframe(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::focus(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_cursor_block(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::focusCursorBlock(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_cursor_block_blinking(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::focusCursorBlockBlinking(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_cursor_bar(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::focusCursorBar(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_cursor_bar_blinking(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::focusCursorBarBlinking(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_cursor_underline(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::focusCursorUnderline(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_cursor_underline_blinking(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::focusCursorUnderlineBlinking(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_italic(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::italic(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_underlined_double(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::underlinedDouble(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_automerge(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::automerge(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_hyperlink(const char* link, ftxui_element_handle_t element) {
+    std::string link_str(link);
+    return apply_element_modifier(element, [link_str](ftxui::Element el) {
+        return ftxui::hyperlink(link_str, std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_hscroll_indicator(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return std::move(el) | ftxui::hscroll_indicator;
+    });
+}
+
+ftxui_element_handle_t ftxui_element_clear_under(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::clear_under(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_border_styled(ftxui_element_handle_t element, ftxui_border_style_t style) {
+    ftxui::BorderStyle ftxui_style;
+    switch (style) {
+        case FTXUI_BORDER_STYLE_LIGHT: ftxui_style = ftxui::LIGHT; break;
+        case FTXUI_BORDER_STYLE_DASHED: ftxui_style = ftxui::DASHED; break;
+        case FTXUI_BORDER_STYLE_HEAVY: ftxui_style = ftxui::HEAVY; break;
+        case FTXUI_BORDER_STYLE_DOUBLE: ftxui_style = ftxui::DOUBLE; break;
+        case FTXUI_BORDER_STYLE_ROUNDED: ftxui_style = ftxui::ROUNDED; break;
+        case FTXUI_BORDER_STYLE_EMPTY: ftxui_style = ftxui::EMPTY; break;
+        default: ftxui_style = ftxui::LIGHT; break;
+    }
+    return apply_element_modifier(element, [ftxui_style](ftxui::Element el) {
+        return std::move(el) | ftxui::borderStyled(ftxui_style);
+    });
+}
+
+ftxui_element_handle_t ftxui_element_border_styled_color(ftxui_element_handle_t element, ftxui_border_style_t style, ftxui_color_handle_t color) {
+    auto* color_ptr = static_cast<ftxui::Color*>(color);
+    if (!color_ptr) return nullptr;
+    ftxui::BorderStyle ftxui_style;
+    switch (style) {
+        case FTXUI_BORDER_STYLE_LIGHT: ftxui_style = ftxui::LIGHT; break;
+        case FTXUI_BORDER_STYLE_DASHED: ftxui_style = ftxui::DASHED; break;
+        case FTXUI_BORDER_STYLE_HEAVY: ftxui_style = ftxui::HEAVY; break;
+        case FTXUI_BORDER_STYLE_DOUBLE: ftxui_style = ftxui::DOUBLE; break;
+        case FTXUI_BORDER_STYLE_ROUNDED: ftxui_style = ftxui::ROUNDED; break;
+        case FTXUI_BORDER_STYLE_EMPTY: ftxui_style = ftxui::EMPTY; break;
+        default: ftxui_style = ftxui::LIGHT; break;
+    }
+    return apply_element_modifier(element, [ftxui_style, color_ptr](ftxui::Element el) {
+        return std::move(el) | ftxui::borderStyled(ftxui_style, *color_ptr);
+    });
+}
+
+ftxui_element_handle_t ftxui_element_border_colored(ftxui_element_handle_t element, ftxui_color_handle_t color) {
+    auto* color_ptr = static_cast<ftxui::Color*>(color);
+    if (!color_ptr) return nullptr;
+    return apply_element_modifier(element, [color_ptr](ftxui::Element el) {
+        return std::move(el) | ftxui::borderStyled(*color_ptr);
+    });
+}
+
+ftxui_element_handle_t ftxui_element_selection_style_reset(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return ftxui::selectionStyleReset(std::move(el));
+    });
+}
+
+ftxui_element_handle_t ftxui_element_selection_color(ftxui_element_handle_t element, ftxui_color_handle_t color) {
+    auto* color_ptr = static_cast<ftxui::Color*>(color);
+    if (!color_ptr) return nullptr;
+    return apply_element_modifier(element, [color_ptr](ftxui::Element el) {
+        return std::move(el) | ftxui::selectionColor(*color_ptr);
+    });
+}
+
+ftxui_element_handle_t ftxui_element_selection_background_color(ftxui_element_handle_t element, ftxui_color_handle_t color) {
+    auto* color_ptr = static_cast<ftxui::Color*>(color);
+    if (!color_ptr) return nullptr;
+    return apply_element_modifier(element, [color_ptr](ftxui::Element el) {
+        return std::move(el) | ftxui::selectionBackgroundColor(*color_ptr);
+    });
+}
+
+ftxui_element_handle_t ftxui_element_selection_foreground_color(ftxui_element_handle_t element, ftxui_color_handle_t color) {
+    auto* color_ptr = static_cast<ftxui::Color*>(color);
+    if (!color_ptr) return nullptr;
+    return apply_element_modifier(element, [color_ptr](ftxui::Element el) {
+        return std::move(el) | ftxui::selectionForegroundColor(*color_ptr);
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_position(ftxui_element_handle_t element, int x, int y) {
+    return apply_element_modifier(element, [x, y](ftxui::Element el) {
+        return std::move(el) | ftxui::focusPosition(x, y);
+    });
+}
+
+ftxui_element_handle_t ftxui_element_focus_position_relative(ftxui_element_handle_t element, float x, float y) {
+    return apply_element_modifier(element, [x, y](ftxui::Element el) {
+        return std::move(el) | ftxui::focusPositionRelative(x, y);
+    });
+}
+
+// -- END additional elements
 
 ftxui_easing_function_t ftxui_easing_function_get(ftxui_easing_function_type_t type) {
     switch (type) {
@@ -473,8 +826,8 @@ ftxui_easing_function_t ftxui_easing_function_get(ftxui_easing_function_type_t t
 static ftxui::AnimatedColorOption to_ftxui_animated_color_option(ftxui_animated_color_option_t option) {
     ftxui::AnimatedColorOption res;
     res.enabled = option.enabled;
-    res.inactive = *static_cast<ftxui::Color*>(option.inactive);
-    res.active = *static_cast<ftxui::Color*>(option.active);
+    if (option.inactive) res.inactive = *static_cast<ftxui::Color*>(option.inactive);
+    if (option.active) res.active = *static_cast<ftxui::Color*>(option.active);
     res.duration = std::chrono::milliseconds(option.duration_ms);
     res.function = ftxui_easing_function_get(option.easing_function_type);
     return res;
@@ -567,9 +920,8 @@ static ftxui_element_handle_t button_transform_simple_wrapper(ftxui_entry_state_
 }
 
 ftxui_button_option_t ftxui_button_option_simple() {
-    ftxui_button_option_t res;
+    ftxui_button_option_t res = {};
     res.transform = button_transform_simple_wrapper;
-    res.transform_userdata = nullptr; // No specific userdata needed for this transform
     return res;
 }
 
@@ -581,9 +933,8 @@ static ftxui_element_handle_t button_transform_ascii_wrapper(ftxui_entry_state_t
 }
 
 ftxui_button_option_t ftxui_button_option_ascii() {
-    ftxui_button_option_t res;
+    ftxui_button_option_t res = {};
     res.transform = button_transform_ascii_wrapper;
-    res.transform_userdata = nullptr; // No specific userdata needed for this transform
     return res;
 }
 
@@ -601,9 +952,8 @@ static ftxui_element_handle_t button_transform_border_wrapper(ftxui_entry_state_
 }
 
 ftxui_button_option_t ftxui_button_option_border() {
-    ftxui_button_option_t res;
+    ftxui_button_option_t res = {};
     res.transform = button_transform_border_wrapper;
-    res.transform_userdata = nullptr; // No specific userdata needed for this transform
     return res;
 }
 
@@ -628,14 +978,10 @@ static ftxui_animated_color_option_t create_animated_color_option(ftxui_color_ha
 }
 
 ftxui_button_option_t ftxui_button_option_animated(ftxui_color_handle_t background, ftxui_color_handle_t foreground, ftxui_color_handle_t background_active, ftxui_color_handle_t foreground_active) {
-    ftxui_animated_colors_option_t animated_colors;
-    animated_colors.foreground = create_animated_color_option(foreground, foreground_active);
-    animated_colors.background = create_animated_color_option(background, background_active);
-
-    ftxui_button_option_t res;
-    res.animated_colors = animated_colors;
+    ftxui_button_option_t res = {};
+    res.animated_colors.foreground = create_animated_color_option(foreground, foreground_active);
+    res.animated_colors.background = create_animated_color_option(background, background_active);
     res.transform = button_transform_animated_with_colors_wrapper;
-    res.transform_userdata = nullptr; // No specific userdata needed for this transform
     return res;
 }
 
@@ -803,4 +1149,186 @@ ftxui_element_handle_t ftxui_component_render(ftxui_component_handle_t component
     if (!inner_wrapper) return nullptr;
 
     return create_element_wrapper(inner_wrapper->component->Render());
+}
+
+// Generic helper to apply a modifier to a component and return a new wrapped component
+template <typename Modifier>
+static ftxui_component_handle_t apply_component_modifier(ftxui_component_handle_t component_handle, Modifier modifier) {
+    auto* inner_wrapper = static_cast<FTXUIComponentWrapper*>(component_handle);
+    if (!inner_wrapper) return nullptr;
+
+    auto* new_wrapper = new FTXUIComponentWrapper();
+    new_wrapper->component = ftxui::Renderer(inner_wrapper->component, [modifier, inner_wrapper] {
+        return modifier(inner_wrapper->component->Render());
+    });
+    return static_cast<ftxui_component_handle_t>(new_wrapper);
+}
+
+
+ftxui_component_handle_t ftxui_component_dim(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::dim;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_blink(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::blink;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_strikethrough(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::strikethrough;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_nothing(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::nothing(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_border(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::border(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_border_light(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::borderLight(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_border_dashed(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::borderDashed(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_border_heavy(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::borderHeavy(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_border_double(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::borderDouble(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_border_rounded(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::borderRounded(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_border_empty(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::borderEmpty(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_frame(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::frame;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_flex(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::flex;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_bold(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::bold;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_inverted(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::inverted;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_underlined(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::underlined;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_color(ftxui_component_handle_t component, ftxui_color_handle_t color_handle) {
+    auto* color_ptr = static_cast<ftxui::Color*>(color_handle);
+    if (!color_ptr) return nullptr;
+    return apply_component_modifier(component, [color_ptr](ftxui::Element el) {
+        return std::move(el) | ftxui::color(*color_ptr);
+    });
+}
+
+ftxui_component_handle_t ftxui_component_bgcolor(ftxui_component_handle_t component, ftxui_color_handle_t color_handle) {
+    auto* color_ptr = static_cast<ftxui::Color*>(color_handle);
+    if (!color_ptr) return nullptr;
+    return apply_component_modifier(component, [color_ptr](ftxui::Element el) {
+        return std::move(el) | ftxui::bgcolor(*color_ptr);
+    });
+}
+
+ftxui_component_handle_t ftxui_component_vscroll_indicator(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return std::move(el) | ftxui::vscroll_indicator;
+    });
+}
+
+ftxui_component_handle_t ftxui_component_set_size(ftxui_component_handle_t component, ftxui_width_or_height_t width_or_height_enum, ftxui_constraint_t constraint_type, int value) {
+    return apply_component_modifier(component, [width_or_height_enum, constraint_type, value](ftxui::Element el) {
+        ftxui::WidthOrHeight width_or_height;
+        ftxui::Constraint constraint;
+        switch (width_or_height_enum) {
+            case FTXUI_WIDTH_OR_HEIGHT_WIDTH: width_or_height = ftxui::WidthOrHeight::WIDTH; break;
+            case FTXUI_WIDTH_OR_HEIGHT_HEIGHT: width_or_height = ftxui::WidthOrHeight::HEIGHT; break;
+        }
+        switch (constraint_type) {
+            case FTXUI_CONSTRAINT_LESS_THAN: constraint = ftxui::Constraint::LESS_THAN; break;
+            case FTXUI_CONSTRAINT_GREATER_THAN: constraint = ftxui::Constraint::GREATER_THAN; break;
+            case FTXUI_CONSTRAINT_EQUAL: constraint = ftxui::Constraint::EQUAL; break;
+        }
+        return el | ftxui::size(width_or_height, constraint, value);
+    });
+}
+
+ftxui_component_handle_t ftxui_component_hcenter(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::hcenter(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_vcenter(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::vcenter(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_center(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::center(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_align_right(ftxui_component_handle_t component) {
+    return apply_component_modifier(component, [](ftxui::Element el) {
+        return ftxui::align_right(std::move(el));
+    });
+}
+
+ftxui_component_handle_t ftxui_component_poll(ftxui_app_handle_t /*app*/, void (*on_poll)(void*), void* userdata) {
+    auto* wrapper = new FTXUIComponentWrapper();
+    wrapper->component = ftxui::Renderer([on_poll, userdata] {
+        if (on_poll) on_poll(userdata);
+        return ftxui::text("");
+    });
+    return static_cast<ftxui_component_handle_t>(wrapper);
 }
