@@ -291,6 +291,23 @@ typedef enum {
 } ftxui_palette256_t;
 
 /**
+ * @brief Specifies whether to apply size constraints to width or height.
+ */
+typedef enum {
+    FTXUI_WIDTH_OR_HEIGHT_WIDTH,  ///< Apply constraints to the width.
+    FTXUI_WIDTH_OR_HEIGHT_HEIGHT, ///< Apply constraints to the height.
+} ftxui_width_or_height_t;
+
+/**
+ * @brief Specifies the type of size constraint to apply.
+ */
+typedef enum {
+    FTXUI_CONSTRAINT_LESS_THAN,      ///< The size must be less than the given value.
+    FTXUI_CONSTRAINT_GREATER_THAN,   ///< The size must be greater than the given value.
+    FTXUI_CONSTRAINT_EQUAL,          ///< The size must be equal to the given value.
+} ftxui_constraint_t;
+
+/**
  * @brief Creates a default (transparent) Color object.
  * @return A handle to the new Color object.
  */
@@ -790,6 +807,33 @@ ftxui_element_handle_t ftxui_element_color(ftxui_element_handle_t element, ftxui
  * @return ftxui_element_handle_t A new element with the specified color.
  */
 ftxui_element_handle_t ftxui_element_bgcolor(ftxui_element_handle_t element, ftxui_color_handle_t color);
+
+/**
+ * @brief Adds a vertical scroll indicator to an element.
+ *
+ * @param element The element to add the scroll indicator to.
+ * @return ftxui_element_handle_t A new element with a vertical scroll indicator.
+ */
+ftxui_element_handle_t ftxui_element_vscroll_indicator(ftxui_element_handle_t element);
+
+/**
+ * @brief Wraps an element in a frame, allowing it to be scrolled.
+ *
+ * @param element The element to wrap in a frame.
+ * @return ftxui_element_handle_t A new element wrapped in a frame.
+ */
+ftxui_element_handle_t ftxui_element_frame(ftxui_element_handle_t element);
+
+/**
+ * @brief Applies size constraints to an element.
+ *
+ * @param element The element to apply constraints to.
+ * @param width_or_height Specifies whether to constrain width or height.
+ * @param constraint_type The type of constraint to apply.
+ * @param value The value for the constraint.
+ * @return ftxui_element_handle_t A new element with the specified size constraints.
+ */
+ftxui_element_handle_t ftxui_element_set_size(ftxui_element_handle_t element, ftxui_width_or_height_t width_or_height, ftxui_constraint_t constraint_type, int value);
 
 // --- Util ---
 

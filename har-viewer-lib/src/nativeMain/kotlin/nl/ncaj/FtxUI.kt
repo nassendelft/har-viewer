@@ -31,14 +31,11 @@ class Color internal constructor(internal val handle: ftxui_color_handle_t?) {
         fun palette16(index: ftxui_palette16_t) = Color(ftxui_color_palette16(index))
         fun palette256(index: ftxui_palette256_t) = Color(ftxui_color_palette256(index))
 
-        fun interpolate(ratio: Float, colorA: Color, colorB: Color): Color {
-            return Color(ftxui_color_interpolate(ratio, colorA.handle, colorB.handle))
-        }
+        fun interpolate(ratio: Float, colorA: Color, colorB: Color) =
+            Color(ftxui_color_interpolate(ratio, colorA.handle, colorB.handle))
     }
 
-    fun destroy() {
-        ftxui_color_destroy(handle)
-    }
+    fun destroy() = ftxui_color_destroy(handle)
 }
 
 enum class BorderStyle(internal val value: ftxui_border_style_t) {
@@ -48,10 +45,17 @@ enum class BorderStyle(internal val value: ftxui_border_style_t) {
     Double(ftxui_border_style_t.FTXUI_BORDER_STYLE_DOUBLE),
     Rounded(ftxui_border_style_t.FTXUI_BORDER_STYLE_ROUNDED),
     Empty(ftxui_border_style_t.FTXUI_BORDER_STYLE_EMPTY);
+}
 
-    internal companion object {
-        fun from(value: ftxui_border_style_t) = entries.first { it.value == value }
-    }
+enum class WidthOrHeight(internal val value: ftxui_width_or_height_t) {
+    Width(ftxui_width_or_height_t.FTXUI_WIDTH_OR_HEIGHT_WIDTH),
+    Height(ftxui_width_or_height_t.FTXUI_WIDTH_OR_HEIGHT_HEIGHT);
+}
+
+enum class Constraint(internal val value: ftxui_constraint_t) {
+    LessThan(ftxui_constraint_t.FTXUI_CONSTRAINT_LESS_THAN),
+    GreaterThan(ftxui_constraint_t.FTXUI_CONSTRAINT_GREATER_THAN),
+    Equal(ftxui_constraint_t.FTXUI_CONSTRAINT_EQUAL),
 }
 
 data class EntryState(
@@ -62,21 +66,20 @@ data class EntryState(
     val index: Int
 )
 
-class Component internal constructor(internal val handle: ComponentHandle)
+open class Component internal constructor(internal val handle: ComponentHandle)
+
+class ContainerComponent internal constructor(handle: ComponentHandle): Component(handle){
+    fun add(component: Component) = ftxui_container_add(this.handle, component.handle)
+}
+
 class Element internal constructor(internal val handle: ElementHandle)
 
 class FtxUIApp internal constructor(internal val handle: ftxui_app_handle_t) {
-    fun loop(root: Component) {
-        ftxui_app_loop(handle, root.handle)
-    }
+    fun loop(root: Component) = ftxui_app_loop(handle, root.handle)
 
-    fun exit() {
-        ftxui_app_exit(handle)
-    }
+    fun exit() = ftxui_app_exit(handle)
 
-    fun destroy() {
-        ftxui_app_destroy(handle)
-    }
+    fun destroy() = ftxui_app_destroy(handle)
 
     companion object {
         fun fullscreen() = FtxUIApp(ftxui_app_create_fullscreen()!!)
@@ -127,6 +130,15 @@ fun Element.underlined() =
 
 fun Element.window(title: Element) =
     Element(ftxui_element_window(title.handle, this.handle)!!)
+
+fun Element.vscrollIndicator() =
+    Element(ftxui_element_vscroll_indicator(this.handle)!!)
+
+fun Element.frame() =
+    Element(ftxui_element_frame(this.handle)!!)
+
+fun Element.size(widthOrHeight: WidthOrHeight, constraint: Constraint, value: Int) =
+    Element(ftxui_element_set_size(this.handle, widthOrHeight.value, constraint.value, value)!!)
 
 // -- Elements
 
@@ -226,8 +238,22 @@ class ButtonOption private constructor(internal val handle: CValue<ftxui_button_
             ftxui_button_option_animated(
                 background.handle,
                 foreground.handle,
+                background.handle,
                 foreground.handle,
-                background.handle
+            )
+        )
+
+        fun animated(
+            background: Color,
+            foreground: Color,
+            backgroundActive: Color,
+            foregroundActive: Color
+        ) = ButtonOption(
+            ftxui_button_option_animated(
+                background.handle,
+                foreground.handle,
+                backgroundActive.handle,
+                foregroundActive.handle,
             )
         )
     }
@@ -269,16 +295,16 @@ fun button(
     return Component(handle!!)
 }
 
-fun horizontal(vararg components: Component): Component {
-    val container = ftxui_component_container_horizontal()!!
-    for (component in components) ftxui_container_add(container, component.handle)
-    return Component(container)
+fun horizontal(vararg components: Component): ContainerComponent {
+    val container = ContainerComponent(ftxui_component_container_horizontal()!!)
+    for (component in components) container.add(component)
+    return container
 }
 
-fun vertical(vararg components: Component): Component {
-    val container = ftxui_component_container_vertical()!!
-    for (component in components) ftxui_container_add(container, component.handle)
-    return Component(container)
+fun vertical(vararg components: Component): ContainerComponent {
+    val container = ContainerComponent(ftxui_component_container_vertical()!!)
+    for (component in components) container.add(component)
+    return container
 }
 
 @Suppress("UNCHECKED_CAST")

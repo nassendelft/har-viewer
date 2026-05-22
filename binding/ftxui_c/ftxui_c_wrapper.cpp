@@ -3,6 +3,7 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/animation.hpp> // Include for animation easing functions
 #include <ftxui/screen/color.hpp> // Include for ftxui::Color
+#include <ftxui/dom/elements.hpp> // Include for ftxui::size
 #include <memory>
 #include <vector>
 #include <string.h> // For strdup
@@ -365,6 +366,36 @@ ftxui_element_handle_t ftxui_element_border_empty(ftxui_element_handle_t element
         return std::move(el) | ftxui::underlined;
     });
  }
+
+ftxui_element_handle_t ftxui_element_vscroll_indicator(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return std::move(el) | ftxui::vscroll_indicator;
+    });
+}
+
+ftxui_element_handle_t ftxui_element_frame(ftxui_element_handle_t element) {
+    return apply_element_modifier(element, [](ftxui::Element el) {
+        return std::move(el) | ftxui::frame;
+    });
+}
+
+ftxui_element_handle_t ftxui_element_set_size(ftxui_element_handle_t element, ftxui_width_or_height_t width_or_height_enum, ftxui_constraint_t constraint_type, int value) {
+    auto ftxui_constraint_modifier = [&](ftxui::Element el) {
+        ftxui::WidthOrHeight width_or_height;
+        ftxui::Constraint constraint;
+        switch (width_or_height_enum) {
+            case FTXUI_WIDTH_OR_HEIGHT_WIDTH: width_or_height = ftxui::WidthOrHeight::WIDTH; break;
+            case FTXUI_WIDTH_OR_HEIGHT_HEIGHT: width_or_height = ftxui::WidthOrHeight::HEIGHT; break;
+        }
+        switch (constraint_type) {
+            case FTXUI_CONSTRAINT_LESS_THAN: constraint = ftxui::Constraint::LESS_THAN; break;
+            case FTXUI_CONSTRAINT_GREATER_THAN: constraint = ftxui::Constraint::GREATER_THAN; break;
+            case FTXUI_CONSTRAINT_EQUAL: constraint = ftxui::Constraint::EQUAL; break;
+        }
+        return el | ftxui::size(width_or_height, constraint, value);
+    };
+    return apply_element_modifier(element, ftxui_constraint_modifier);
+}
 
 // -- END decorators
 
