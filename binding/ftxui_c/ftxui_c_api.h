@@ -1484,6 +1484,8 @@ ftxui_component_handle_t ftxui_component_slider_float_direction(float* value, fl
 ftxui_component_handle_t ftxui_component_menu_horizontal(const char** entries, int count, int* selected);
 
 // --- ResizableSplit with options ---
+typedef ftxui_element_handle_t (*ftxui_separator_func_t)(void* userdata);
+
 typedef struct {
     ftxui_component_handle_t main;
     ftxui_component_handle_t back;
@@ -1491,6 +1493,8 @@ typedef struct {
     int* main_size;
     int* min_size;
     int* max_size;
+    ftxui_separator_func_t separator_func;
+    void* separator_userdata;
 } ftxui_resizable_split_option_t;
 
 ftxui_component_handle_t ftxui_component_resizable_split_opt(ftxui_resizable_split_option_t option);

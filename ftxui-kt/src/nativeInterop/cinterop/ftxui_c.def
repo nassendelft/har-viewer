@@ -1,0 +1,5 @@
+headers = ftxui_c_api.h
+package = ftxui_c
+staticLibraries = libftxui_c_binding.a libftxui-component.a libftxui-dom.a libftxui-screen.a
+libraryPaths = /Users/nick/Projects/har-viewer/binding/ftxui_c/build /Users/nick/Projects/har-viewer/binding/ftxui_c/build/ftxui_build
+compilerOpts = -I/Users/nick/Projects/har-viewer/binding/ftxui_c

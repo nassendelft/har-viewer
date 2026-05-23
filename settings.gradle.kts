@@ -13,4 +13,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "har-viewer"
 
-include(":har-viewer-lib")
+include(":ftxui-kt")
+include(":app")

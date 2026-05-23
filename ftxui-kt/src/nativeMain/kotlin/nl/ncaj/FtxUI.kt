@@ -704,8 +704,20 @@ fun menuHorizontal(entries: List<String>, selected: IntState): Component = memSc
     Component(ftxui_component_menu_horizontal(ptrs, entries.size, selected.ptr)!!)
 }
 
-fun resizableSplit(main: Component, back: Component, mainSize: IntState, direction: Direction,
-                   minSize: IntState? = null, maxSize: IntState? = null): Component {
+private val separatorFuncBridge = staticCFunction<COpaquePointer?, ftxui_element_handle_t?> { userdata ->
+    userdata!!.asStableRef<() -> Element>().get()().handle
+}
+
+fun resizableSplit(
+    main: Component,
+    back: Component,
+    mainSize: IntState,
+    direction: Direction,
+    minSize: IntState? = null,
+    maxSize: IntState? = null,
+    separator: (() -> Element)? = null
+): Component {
+    val ref = separator?.let { StableRef.create(it) }
     val option = cValue<ftxui_resizable_split_option_t> {
         this.main = main.handle
         this.back = back.handle
@@ -713,6 +725,10 @@ fun resizableSplit(main: Component, back: Component, mainSize: IntState, directi
         this.main_size = mainSize.ptr
         this.min_size = minSize?.ptr
         this.max_size = maxSize?.ptr
+        if (ref != null) {
+            this.separator_func = separatorFuncBridge
+            this.separator_userdata = ref.asCPointer()
+        }
     }
     val handle = ftxui_component_resizable_split_opt(option)!!
     return wrapOwning(main, back, handle)

@@ -117,16 +117,16 @@ fun exampleCanvasAnimated() {
         val mx = (mouseX - 3 * my) / 5f
         val ys = Array(size) { y -> FloatArray(size) { x ->
             val dx = x - mx; val dy = y - my
-            -1.5f + 3.0f * exp(-0.2f * (dx * dx + dy * dy)).toFloat()
+            -1.5f + 3.0f * exp(-0.2f * (dx * dx + dy * dy))
         }}
         for (y in 0 until size) for (x in 0 until size) {
             if (x != 0) c.drawPointLine(
-                (5 * (x - 1) + 3 * y).toInt(), (90 - 5 * y - 5 * ys[y][x - 1]).toInt(),
-                (5 * x + 3 * y).toInt(), (90 - 5 * y - 5 * ys[y][x]).toInt()
+                (5 * (x - 1) + 3 * y), (90 - 5 * y - 5 * ys[y][x - 1]).toInt(),
+                (5 * x + 3 * y), (90 - 5 * y - 5 * ys[y][x]).toInt()
             )
             if (y != 0) c.drawPointLine(
-                (5 * x + 3 * (y - 1)).toInt(), (90 - 5 * (y - 1) - 5 * ys[y - 1][x]).toInt(),
-                (5 * x + 3 * y).toInt(), (90 - 5 * y - 5 * ys[y][x]).toInt()
+                (5 * x + 3 * (y - 1)), (90 - 5 * (y - 1) - 5 * ys[y - 1][x]).toInt(),
+                (5 * x + 3 * y), (90 - 5 * y - 5 * ys[y][x]).toInt()
             )
         }
         c.toElement()

@@ -1521,6 +1521,16 @@ ftxui_component_handle_t ftxui_component_resizable_split_opt(ftxui_resizable_spl
     opt.main_size = option.main_size;
     if (option.min_size) opt.min = option.min_size;
     if (option.max_size) opt.max = option.max_size;
+    if (option.separator_func) {
+        auto func = option.separator_func;
+        auto userdata = option.separator_userdata;
+        opt.separator_func = [func, userdata]() -> ftxui::Element {
+            auto* w = static_cast<FTXUIElementWrapper*>(func(userdata));
+            auto elem = std::move(w->element);
+            delete w;
+            return elem;
+        };
+    }
     wrapper->component = ftxui::ResizableSplit(opt);
     return static_cast<ftxui_component_handle_t>(wrapper);
 }
