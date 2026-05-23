@@ -477,7 +477,134 @@ data class FtxUIEvent(
     val isMouse: Boolean,
     val mouseX: Int = 0,
     val mouseY: Int = 0,
-)
+) {
+    fun isKey(key: String): Boolean = input == key
+}
+
+object Key {
+    // Arrow keys
+    const val ArrowLeft      = "\u001B[D"
+    const val ArrowRight     = "\u001B[C"
+    const val ArrowUp        = "\u001B[A"
+    const val ArrowDown      = "\u001B[B"
+    const val ArrowLeftCtrl  = "\u001B[1;5D"
+    const val ArrowRightCtrl = "\u001B[1;5C"
+    const val ArrowUpCtrl    = "\u001B[1;5A"
+    const val ArrowDownCtrl  = "\u001B[1;5B"
+
+    // Common keys
+    const val Backspace  = "\u007F"
+    const val Delete     = "\u001B[3~"
+    const val Escape     = "\u001B"
+    const val Return     = "\n"
+    const val Tab        = "\t"
+    const val TabReverse = "\u001B[Z"
+
+    // Navigation keys
+    const val Insert   = "\u001B[2~"
+    const val Home     = "\u001B[H"
+    const val End      = "\u001B[F"
+    const val PageUp   = "\u001B[5~"
+    const val PageDown = "\u001B[6~"
+
+    // Function keys
+    const val F1  = "\u001BOP"
+    const val F2  = "\u001BOQ"
+    const val F3  = "\u001BOR"
+    const val F4  = "\u001BOS"
+    const val F5  = "\u001B[15~"
+    const val F6  = "\u001B[17~"
+    const val F7  = "\u001B[18~"
+    const val F8  = "\u001B[19~"
+    const val F9  = "\u001B[20~"
+    const val F10 = "\u001B[21~"
+    const val F11 = "\u001B[23~"
+    const val F12 = "\u001B[24~"
+
+    // Ctrl keys (\u0001..\u001A)
+    const val CtrlA = "\u0001"
+    const val CtrlB = "\u0002"
+    const val CtrlC = "\u0003"
+    const val CtrlD = "\u0004"
+    const val CtrlE = "\u0005"
+    const val CtrlF = "\u0006"
+    const val CtrlG = "\u0007"
+    const val CtrlH = "\u0008"
+    const val CtrlI = "\t"
+    const val CtrlJ = "\n"
+    const val CtrlK = "\u000B"
+    const val CtrlL = "\u000C"
+    const val CtrlM = "\r"
+    const val CtrlN = "\u000E"
+    const val CtrlO = "\u000F"
+    const val CtrlP = "\u0010"
+    const val CtrlQ = "\u0011"
+    const val CtrlR = "\u0012"
+    const val CtrlS = "\u0013"
+    const val CtrlT = "\u0014"
+    const val CtrlU = "\u0015"
+    const val CtrlV = "\u0016"
+    const val CtrlW = "\u0017"
+    const val CtrlX = "\u0018"
+    const val CtrlY = "\u0019"
+    const val CtrlZ = "\u001A"
+
+    // Alt keys (ESC + letter)
+    const val AltA = "\u001Ba"
+    const val AltB = "\u001Bb"
+    const val AltC = "\u001Bc"
+    const val AltD = "\u001Bd"
+    const val AltE = "\u001Be"
+    const val AltF = "\u001Bf"
+    const val AltG = "\u001Bg"
+    const val AltH = "\u001Bh"
+    const val AltI = "\u001Bi"
+    const val AltJ = "\u001Bj"
+    const val AltK = "\u001Bk"
+    const val AltL = "\u001Bl"
+    const val AltM = "\u001Bm"
+    const val AltN = "\u001Bn"
+    const val AltO = "\u001Bo"
+    const val AltP = "\u001Bp"
+    const val AltQ = "\u001Bq"
+    const val AltR = "\u001Br"
+    const val AltS = "\u001Bs"
+    const val AltT = "\u001Bt"
+    const val AltU = "\u001Bu"
+    const val AltV = "\u001Bv"
+    const val AltW = "\u001Bw"
+    const val AltX = "\u001Bx"
+    const val AltY = "\u001By"
+    const val AltZ = "\u001Bz"
+
+    // CtrlAlt keys (ESC + Ctrl key)
+    const val CtrlAltA = "\u001B\u0001"
+    const val CtrlAltB = "\u001B\u0002"
+    const val CtrlAltC = "\u001B\u0003"
+    const val CtrlAltD = "\u001B\u0004"
+    const val CtrlAltE = "\u001B\u0005"
+    const val CtrlAltF = "\u001B\u0006"
+    const val CtrlAltG = "\u001B\u0007"
+    const val CtrlAltH = "\u001B\u0008"
+    const val CtrlAltI = "\u001B\t"
+    const val CtrlAltJ = "\u001B\n"
+    const val CtrlAltK = "\u001B\u000B"
+    const val CtrlAltL = "\u001B\u000C"
+    const val CtrlAltM = "\u001B\r"
+    const val CtrlAltN = "\u001B\u000E"
+    const val CtrlAltO = "\u001B\u000F"
+    const val CtrlAltP = "\u001B\u0010"
+    const val CtrlAltQ = "\u001B\u0011"
+    const val CtrlAltR = "\u001B\u0012"
+    const val CtrlAltS = "\u001B\u0013"
+    const val CtrlAltT = "\u001B\u0014"
+    const val CtrlAltU = "\u001B\u0015"
+    const val CtrlAltV = "\u001B\u0016"
+    const val CtrlAltW = "\u001B\u0017"
+    const val CtrlAltX = "\u001B\u0018"
+    const val CtrlAltY = "\u001B\u0019"
+    const val CtrlAltZ = "\u001B\u001A"
+}
 
 fun Component.catchEvent(handler: (FtxUIEvent) -> Boolean): Component {
     val stableRef = StableRef.create(handler)
