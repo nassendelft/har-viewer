@@ -1,10 +1,7 @@
 import kotlinx.cinterop.ExperimentalForeignApi
-import nl.ncaj.examples.exampleButtonStyle
+import nl.ncaj.examples.exampleSwitcher
 
 @OptIn(ExperimentalForeignApi::class)
 fun main() {
-    // exampleButton()
-    // exampleButtonAnimated()
-    // exampleButtonInFrame()
-    exampleButtonStyle()
+    exampleSwitcher()
 }
