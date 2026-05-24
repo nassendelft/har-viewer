@@ -15,8 +15,9 @@ private fun methodColor(method: String): Color = when (method.uppercase()) {
     else -> Color.GrayLight
 }
 
-private val beige = Color.rgb(0xEB.toUByte(), 0xE2.toUByte(), 0xC3.toUByte())
-private val yellow = Color.rgb(0xFF.toUByte(), 0xB7.toUByte(), 0x00.toUByte())
+private val beige = Color.rgb(0xEBu, 0xE2u, 0xC3u)
+private val yellow = Color.rgb(0xFFu, 0xB7u, 0x00u)
+private val black = Color.rgb(0u, 0u, 0u)
 
 private fun headerRows(headers: List<Header>, panelWidth: Int): List<Element> {
     if (headers.isEmpty()) return listOf(text("(none)").dim())
@@ -89,7 +90,7 @@ private fun renderTabBar(tabSelected: Int, focusedPanel: Int, tabLabels: List<St
                 text(" "),
                 text("${i + 1}").bold().underlined().color(Color.White),
                 text(" $label ").bold().color(Color.White),
-            ).bgcolor(Color.rgb(0xDA.toUByte(), 0x8E.toUByte(), 0xE7.toUByte()))
+            ).bgcolor(Color.rgb(0xDAu, 0x8Eu, 0xE7u))
             isActive -> hbox(
                 text(" "),
                 text("${i + 1}").bold().underlined().color(Color.CyanLight),
@@ -227,7 +228,7 @@ fun main(args: Array<String>) {
         val bodyLines = postData?.text?.lines() ?: emptyList()
         val panelWidth = Terminal.size().dimx - leftSize.value
         val allRows = buildList {
-            add(hbox(text(" Overview").bold().color(Color.Black), filler()).bgcolor(beige))
+            add(hbox(text(" Overview").bold().color(black), filler()).bgcolor(beige))
             add(separatorEmpty())
             add(hbox(text("  Started    ").color(Color.CyanLight), text(entry.startedDateTime)))
             add(hbox(text("  HTTP       ").color(Color.CyanLight), text(req.httpVersion)))
@@ -236,7 +237,7 @@ fun main(args: Array<String>) {
             entry.pageref?.let { add(hbox(text("  Page       ").color(Color.CyanLight), text(it))) }
             if (req.queryString.isNotEmpty()) {
                 add(separatorEmpty())
-                add(hbox(text(" Query Parameters").bold().color(Color.Black), text("  ${req.queryString.size}").color(Color.Black), filler()).bgcolor(beige))
+                add(hbox(text(" Query Parameters").bold().color(black), text("  ${req.queryString.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 val nameWidth = req.queryString.maxOf { it.name.length }
                 req.queryString.forEachIndexed { i, p ->
@@ -250,24 +251,24 @@ fun main(args: Array<String>) {
                 if (req.bodySize >= 0) append("  ${req.bodySize}B body")
             }
             add(hbox(
-                text(" Request Headers").bold().color(Color.Black),
-                text("  ${req.headers.size}").color(Color.Black),
-                text(reqSizeInfo).color(Color.Black),
+                text(" Request Headers").bold().color(black),
+                text("  ${req.headers.size}").color(black),
+                text(reqSizeInfo).color(black),
                 filler(),
             ).bgcolor(beige))
             add(separatorEmpty())
             addAll(headerRows(req.headers, panelWidth))
             if (req.cookies.isNotEmpty()) {
                 add(separatorEmpty())
-                add(hbox(text(" Request Cookies").bold().color(Color.Black), text("  ${req.cookies.size}").color(Color.Black), filler()).bgcolor(beige))
+                add(hbox(text(" Request Cookies").bold().color(black), text("  ${req.cookies.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 addAll(cookieRows(req.cookies))
             }
             if (postData != null) {
                 add(separatorEmpty())
                 add(hbox(
-                    text(" Request Body").bold().color(Color.Black),
-                    if (postData.mimeType.isNotEmpty()) text("  ${postData.mimeType}").color(Color.Black) else text(""),
+                    text(" Request Body").bold().color(black),
+                    if (postData.mimeType.isNotEmpty()) text("  ${postData.mimeType}").color(black) else text(""),
                     filler(),
                 ).bgcolor(beige))
                 add(separatorEmpty())
@@ -299,11 +300,11 @@ fun main(args: Array<String>) {
         val resp = entry.response
         val status = resp.status
         val sColor = when {
-            status < 200 -> Color.GrayLight
-            status < 300 -> Color.GreenLight
-            status < 400 -> Color.CyanLight
-            status < 500 -> yellow
-            else -> Color.RedLight
+            status < 200 -> Color.GrayDark
+            status < 300 -> Color.Green
+            status < 400 -> Color.Cyan
+            status < 500 -> Color.Yellow
+            else -> Color.Red
         }
         val respSizeInfo = buildString {
             if (resp.headersSize >= 0) append("  ${resp.headersSize}B headers")
@@ -312,25 +313,25 @@ fun main(args: Array<String>) {
         val panelWidth = Terminal.size().dimx - leftSize.value
         val allRows = buildList {
             add(hbox(
-                text(" Response Headers").bold().color(Color.Black),
+                text(" Response Headers").bold().color(black),
                 text("  "),
-                text("$status${if (resp.statusText.isNotEmpty()) " ${resp.statusText}" else ""}").bold().color(sColor),
-                text("  ${resp.httpVersion}").color(Color.Black),
-                text("  ${resp.headers.size} headers").color(Color.Black),
-                text(respSizeInfo).color(Color.Black),
+                text(" $status${if (resp.statusText.isNotEmpty()) " ${resp.statusText}" else ""} ").bold().bgcolor(sColor).color(Color.White),
+                text("  ${resp.httpVersion}").color(black),
+                text("  ${resp.headers.size} headers").color(black),
+                text(respSizeInfo).color(black),
                 filler(),
             ).bgcolor(beige))
             add(separatorEmpty())
             addAll(headerRows(resp.headers, panelWidth))
             if (resp.redirectURL.isNotEmpty()) {
                 add(separatorEmpty())
-                add(hbox(text(" Redirect").bold().color(Color.Black), filler()).bgcolor(beige))
+                add(hbox(text(" Redirect").bold().color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 add(hbox(text("  "), text(resp.redirectURL).color(Color.CyanLight)))
             }
             if (resp.cookies.isNotEmpty()) {
                 add(separatorEmpty())
-                add(hbox(text(" Response Cookies").bold().color(Color.Black), text("  ${resp.cookies.size}").color(Color.Black), filler()).bgcolor(beige))
+                add(hbox(text(" Response Cookies").bold().color(black), text("  ${resp.cookies.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 addAll(cookieRows(resp.cookies))
             }
@@ -372,13 +373,13 @@ fun main(args: Array<String>) {
         }
         return vbox(
             hbox(
-                text(" Response Body").bold().color(Color.Black),
-                if (mimeType.isNotEmpty()) text("  $mimeType").color(Color.Blue) else text(""),
-                text(sizeInfo).color(Color.Black),
-                text("  ${lines.size} lines").color(Color.Black),
+                text(" Response Body").bold().color(black),
+                if (mimeType.isNotEmpty()) hbox(text("  "),text(mimeType).color(black).underlined()) else text(""),
+                text(sizeInfo).color(black),
+                text("  ${lines.size} lines").color(black),
                 filler(),
-                text("◄").let { if (bodyScrollX.value > 0) it.color(Color.Black) else it.dim() },
-                text("► ").let { if (bodyScrollX.value < maxScrollX) it.color(Color.Black) else it.dim() },
+                text("◄").let { if (bodyScrollX.value > 0) it.color(black) else it.dim() },
+                text("► ").let { if (bodyScrollX.value < maxScrollX) it.color(black) else it.dim() },
             ).bgcolor(beige),
             separatorEmpty(),
             hbox(
@@ -441,7 +442,7 @@ fun main(args: Array<String>) {
             ))
             if (entry.serverIPAddress != null || entry.connection != null) {
                 add(separatorEmpty())
-                add(hbox(text(" Connection").bold().color(Color.Black), filler()).bgcolor(beige))
+                add(hbox(text(" Connection").bold().color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 entry.serverIPAddress?.let { add(hbox(text("  Server IP  ").color(Color.CyanLight), text(it))) }
                 entry.connection?.let { add(hbox(text("  TCP conn   ").color(Color.CyanLight), text(it))) }
@@ -449,7 +450,7 @@ fun main(args: Array<String>) {
             val cache = entry.cache
             if (cache.beforeRequest != null || cache.afterRequest != null) {
                 add(separatorEmpty())
-                add(hbox(text(" Cache").bold().color(Color.Black), filler()).bgcolor(beige))
+                add(hbox(text(" Cache").bold().color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 cache.beforeRequest?.let { addAll(cacheStateRows("Before Request", it)) }
                 cache.afterRequest?.let { addAll(cacheStateRows("After Request", it)) }
@@ -459,8 +460,8 @@ fun main(args: Array<String>) {
         val timingsH = maxOf(1, Terminal.size().dimy - 8)
         return vbox(
             hbox(
-                text(" Timings").bold().color(Color.Black),
-                text("  Total: ").color(Color.Black),
+                text(" Timings").bold().color(black),
+                text("  Total: ").color(black),
                 text("$totalMs ms").bold().color(yellow),
                 filler(),
             ).bgcolor(beige),
@@ -565,7 +566,6 @@ fun main(args: Array<String>) {
         val onTimings = onDetails && tabSelected.value == 3
         val contentHeight = Terminal.size().dimy - 6
         when {
-            event.isMouse -> true
             event.isKey("r") && !searchActive -> { focusedPanel.value = 0; true }
             event.isKey("d") && !searchActive -> { focusedPanel.value = 1; true }
             event.isKey("1") && !searchActive -> { tabSelected.value = 0; focusedPanel.value = 1; true }
