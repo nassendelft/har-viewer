@@ -18,6 +18,94 @@ private fun methodColor(method: String): Color = when (method.uppercase()) {
 private val beige = Color.rgb(0xEB.toUByte(), 0xE2.toUByte(), 0xC3.toUByte())
 private val yellow = Color.rgb(0xFF.toUByte(), 0xB7.toUByte(), 0x00.toUByte())
 
+private fun headerRows(headers: List<Header>, panelWidth: Int): List<Element> {
+    if (headers.isEmpty()) return listOf(text("(none)").dim())
+    val nameWidth = headers.maxOf { it.name.length }
+    val chunkSize = maxOf(20, panelWidth - 1 - 2 - nameWidth - 3 - 1)
+    val rows = mutableListOf<Element>()
+    for ((i, header) in headers.withIndex()) {
+        val chunks = header.value.chunked(chunkSize)
+        chunks.forEachIndexed { j, chunk ->
+            val nameCell = if (j == 0) text(header.name.padEnd(nameWidth)).bold().color(Color.CyanLight)
+            else text(" ".repeat(nameWidth))
+            rows.add(hbox(nameCell, text(" │ ").dim(), text(chunk).color(beige)))
+        }
+        if (i < headers.lastIndex) rows.add(separator())
+    }
+    return rows
+}
+
+private fun cookieRows(cookies: List<Cookie>): List<Element> {
+    if (cookies.isEmpty()) return listOf(text("(none)").dim())
+    val nameWidth = cookies.maxOf { it.name.length }
+    val rows = mutableListOf<Element>()
+    for ((i, cookie) in cookies.withIndex()) {
+        rows.add(hbox(text(cookie.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(cookie.value).color(beige)))
+        val meta = listOfNotNull(
+            cookie.path?.let { "path=$it" },
+            cookie.domain?.let { "domain=$it" },
+            cookie.expires?.let { "expires=$it" },
+            if (cookie.httpOnly == true) "HttpOnly" else null,
+            if (cookie.secure == true) "Secure" else null,
+        )
+        if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
+        if (i < cookies.lastIndex) rows.add(separator())
+    }
+    return rows
+}
+
+private fun paramRows(params: List<Param>): List<Element> {
+    if (params.isEmpty()) return emptyList()
+    val nameWidth = params.maxOf { it.name.length }
+    val rows = mutableListOf<Element>()
+    for ((i, param) in params.withIndex()) {
+        rows.add(hbox(text(param.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(param.value ?: "").color(beige)))
+        val meta = listOfNotNull(
+            param.fileName?.let { "file=$it" },
+            param.contentType?.let { "type=$it" },
+        )
+        if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
+        if (i < params.lastIndex) rows.add(separator())
+    }
+    return rows
+}
+
+private fun vScrollBar(scrollY: Int, total: Int, visible: Int): Element {
+    if (total <= visible) return vbox(*(0 until maxOf(1, visible)).map { text(" ") }.toTypedArray())
+    val thumbH = maxOf(1, visible * visible / total)
+    val thumbY = ((scrollY.toLong() * maxOf(0, visible - thumbH)) / maxOf(1, total - visible)).toInt()
+    return vbox(*(0 until visible).map { i ->
+        if (i in thumbY until thumbY + thumbH) text("▐").color(Color.GrayLight)
+        else text("▕").dim()
+    }.toTypedArray())
+}
+
+private fun renderTabBar(tabSelected: Int, focusedPanel: Int, tabLabels: List<String>): Element {
+    val detailsFocused = focusedPanel == 1
+    val tabItems = tabLabels.mapIndexed { i, label ->
+        val isActive = i == tabSelected
+        when {
+            isActive && detailsFocused -> hbox(
+                text(" "),
+                text("${i + 1}").bold().underlined().color(Color.White),
+                text(" $label ").bold().color(Color.White),
+            ).bgcolor(Color.rgb(0xDA.toUByte(), 0x8E.toUByte(), 0xE7.toUByte()))
+            isActive -> hbox(
+                text(" "),
+                text("${i + 1}").bold().underlined().color(Color.CyanLight),
+                text(" $label ").bold(),
+            )
+            else -> hbox(
+                text(" "),
+                text("${i + 1}").underlined().color(Color.GrayDark),
+                text(" $label ").color(Color.GrayDark),
+            )
+        }
+    }
+    val withSeps = tabItems.flatMap { listOf(it, text(" │ ").dim()) }.dropLast(1)
+    return hbox(*withSeps.toTypedArray())
+}
+
 @OptIn(ExperimentalForeignApi::class)
 fun main(args: Array<String>) {
     val path = args.firstOrNull() ?: run { println("Usage: har-viewer <file.har>"); return }
@@ -31,14 +119,15 @@ fun main(args: Array<String>) {
     val tabSelected = IntState(0)
     val leftSize = IntState(50)
     val hScrollOffset = IntState(0)
-    val focusedPanel = IntState(0) // 0 = requests, 1 = details
+    val focusedPanel = IntState(0)
     val bodyScrollX = IntState(0)
     val bodyScrollY = IntState(0)
     val reqHeadersScrollY = IntState(0)
     val respHeadersScrollY = IntState(0)
     val timingsScrollY = IntState(0)
     val searchQuery = StringState("")
-    val leftSubFocus = IntState(0) // 0 = list, 1 = search input
+    val leftSubFocus = IntState(0)
+
     var bodyLastContent = ""
     var bodyHighlightedLines: List<List<StyledSpan>>? = null
     var reqBodyHighlightedLines: List<List<StyledSpan>>? = null
@@ -53,6 +142,7 @@ fun main(args: Array<String>) {
     var bodyMaxLineWidth = 0
 
     val maxMethodLen = entries.maxOf { it.request.method.length }
+    val tabLabels = listOf("Request", "Resp Headers", "Body", "Timings")
 
     val searchInput = input(searchQuery, "filter (regex)…")
 
@@ -67,14 +157,7 @@ fun main(args: Array<String>) {
         }
     }
 
-    val entryLabels = entries.map { "${it.request.method}  ${it.request.url}" }
-    val requestListMenu = menu(entryLabels, selectedEntry)
-
-    val leftSubPanel = tab(leftSubFocus)
-    leftSubPanel.add(requestListMenu)
-    leftSubPanel.add(searchInput)
-
-    val requestListRenderer = leftSubPanel.decorateRender { subElem ->
+    fun buildRequestListContent(subElem: Element): Element {
         subElem.destroy()
         val isFocused = focusedPanel.value == 0
         val isSearchFocused = leftSubFocus.value == 1
@@ -124,7 +207,7 @@ fun main(args: Array<String>) {
                     .flex()
         }
 
-        vbox(
+        return vbox(
             searchElem,
             listElem,
         ).flex()
@@ -133,110 +216,17 @@ fun main(args: Array<String>) {
                 hbox(text(" [ "), text("r").underlined().bold().color(Color.GreenLight), text("equests").bold().color(labelColor), text(" ] "))
             })
             .let { if (focusedPanel.value != 0) it.color(Color.GrayDark) else it }
-    }.catchEvent { event ->
-        val filtered = getFilteredEntries()
-        val currentPos = filtered.indexOfFirst { it.first == selectedEntry.value }
-        val isSearchFocused = leftSubFocus.value == 1
-        val maxHOffset = entries[selectedEntry.value].request.url.length
-        when {
-            event.isMouse -> true
-            event.isKey("/") && !isSearchFocused -> { leftSubFocus.value = 1; true }
-            event.isKey(Key.Escape) && isSearchFocused -> { leftSubFocus.value = 0; true }
-            event.isKey(Key.Return) && isSearchFocused -> { leftSubFocus.value = 0; true }
-            (event.isKey(Key.ArrowRight) || event.isKey("l")) && !isSearchFocused -> {
-                hScrollOffset.value = minOf(hScrollOffset.value + 5, maxHOffset); true
-            }
-            (event.isKey(Key.ArrowLeft) || event.isKey("h")) && !isSearchFocused -> {
-                hScrollOffset.value = maxOf(hScrollOffset.value - 5, 0); true
-            }
-            event.isKey(Key.ArrowUp) -> {
-                hScrollOffset.value = 0
-                when {
-                    filtered.isEmpty() -> { }
-                    currentPos < 0 -> selectedEntry.value = filtered.last().first
-                    currentPos > 0 -> selectedEntry.value = filtered[currentPos - 1].first
-                }
-                true
-            }
-            event.isKey(Key.ArrowDown) -> {
-                hScrollOffset.value = 0
-                when {
-                    filtered.isEmpty() -> { }
-                    currentPos < 0 -> selectedEntry.value = filtered.first().first
-                    currentPos < filtered.size - 1 -> selectedEntry.value = filtered[currentPos + 1].first
-                }
-                true
-            }
-            event.isKey(Key.Return) && !isSearchFocused -> { focusedPanel.value = 1; true }
-            else -> false
-        }
     }
 
-    val tabLabels = listOf("Request", "Resp Headers", "Body", "Timings")
-    val tabContainer = tab(tabSelected)
-
-    fun headerRows(headers: List<Header>): List<Element> {
-        if (headers.isEmpty()) return listOf(text("(none)").dim())
-        val nameWidth = headers.maxOf { it.name.length }
-        val chunkSize = maxOf(20, Terminal.size().dimx - leftSize.value - 1 - 2 - nameWidth - 3)
-        val rows = mutableListOf<Element>()
-        for ((i, header) in headers.withIndex()) {
-            val chunks = header.value.chunked(chunkSize)
-            chunks.forEachIndexed { j, chunk ->
-                val nameCell = if (j == 0) text(header.name.padEnd(nameWidth)).bold().color(Color.CyanLight)
-                else text(" ".repeat(nameWidth))
-                rows.add(hbox(nameCell, text(" │ ").dim(), text(chunk).color(beige)))
-            }
-            if (i < headers.lastIndex) rows.add(separator())
-        }
-        return rows
-    }
-
-    fun cookieRows(cookies: List<Cookie>): List<Element> {
-        if (cookies.isEmpty()) return listOf(text("(none)").dim())
-        val nameWidth = cookies.maxOf { it.name.length }
-        val rows = mutableListOf<Element>()
-        for ((i, cookie) in cookies.withIndex()) {
-            rows.add(hbox(text(cookie.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(cookie.value).color(beige)))
-            val meta = listOfNotNull(
-                cookie.path?.let { "path=$it" },
-                cookie.domain?.let { "domain=$it" },
-                cookie.expires?.let { "expires=$it" },
-                if (cookie.httpOnly == true) "HttpOnly" else null,
-                if (cookie.secure == true) "Secure" else null,
-            )
-            if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
-            if (i < cookies.lastIndex) rows.add(separator())
-        }
-        return rows
-    }
-
-    fun paramRows(params: List<Param>): List<Element> {
-        if (params.isEmpty()) return emptyList()
-        val nameWidth = params.maxOf { it.name.length }
-        val rows = mutableListOf<Element>()
-        for ((i, param) in params.withIndex()) {
-            rows.add(hbox(text(param.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(param.value ?: "").color(beige)))
-            val meta = listOfNotNull(
-                param.fileName?.let { "file=$it" },
-                param.contentType?.let { "type=$it" },
-            )
-            if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
-            if (i < params.lastIndex) rows.add(separator())
-        }
-        return rows
-    }
-
-    // Tab 0: Request overview + headers + body
-    tabContainer.add(renderer {
+    fun requestTabContent(): Element {
         val idx = selectedEntry.value
         if (idx != reqHeadersLastEntry) { reqHeadersLastEntry = idx; reqHeadersScrollY.value = 0; reqBodyHighlightedLines = null }
         val entry = entries[idx]
         val req = entry.request
         val postData = req.postData
         val bodyLines = postData?.text?.lines() ?: emptyList()
+        val panelWidth = Terminal.size().dimx - leftSize.value
         val allRows = buildList {
-            // Overview
             add(hbox(text(" Overview").bold().color(Color.Black), filler()).bgcolor(beige))
             add(separatorEmpty())
             add(hbox(text("  Started    ").color(Color.CyanLight), text(entry.startedDateTime)))
@@ -244,7 +234,6 @@ fun main(args: Array<String>) {
             entry.serverIPAddress?.let { add(hbox(text("  Server IP  ").color(Color.CyanLight), text(it))) }
             entry.connection?.let { add(hbox(text("  Connection ").color(Color.CyanLight), text(it))) }
             entry.pageref?.let { add(hbox(text("  Page       ").color(Color.CyanLight), text(it))) }
-            // Query string
             if (req.queryString.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Query Parameters").bold().color(Color.Black), text("  ${req.queryString.size}").color(Color.Black), filler()).bgcolor(beige))
@@ -255,7 +244,6 @@ fun main(args: Array<String>) {
                     if (i < req.queryString.lastIndex) add(separator())
                 }
             }
-            // Headers
             add(separatorEmpty())
             val reqSizeInfo = buildString {
                 if (req.headersSize >= 0) append("  ${req.headersSize}B headers")
@@ -268,15 +256,13 @@ fun main(args: Array<String>) {
                 filler(),
             ).bgcolor(beige))
             add(separatorEmpty())
-            addAll(headerRows(req.headers))
-            // Cookies
+            addAll(headerRows(req.headers, panelWidth))
             if (req.cookies.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Request Cookies").bold().color(Color.Black), text("  ${req.cookies.size}").color(Color.Black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 addAll(cookieRows(req.cookies))
             }
-            // Post body
             if (postData != null) {
                 add(separatorEmpty())
                 add(hbox(
@@ -299,11 +285,14 @@ fun main(args: Array<String>) {
             }
         }
         reqHeadersRowCount = allRows.size
-        vbox(*allRows.drop(reqHeadersScrollY.value).toTypedArray()).flex()
-    })
+        val reqH = Terminal.size().dimy - 6
+        return hbox(
+            vbox(*allRows.drop(reqHeadersScrollY.value).toTypedArray()).flex(),
+            vScrollBar(reqHeadersScrollY.value, allRows.size, reqH),
+        ).flex()
+    }
 
-    // Tab 1: Response headers + cookies
-    tabContainer.add(renderer {
+    fun responseHeadersTabContent(): Element {
         val idx = selectedEntry.value
         if (idx != respHeadersLastEntry) { respHeadersLastEntry = idx; respHeadersScrollY.value = 0 }
         val entry = entries[idx]
@@ -320,6 +309,7 @@ fun main(args: Array<String>) {
             if (resp.headersSize >= 0) append("  ${resp.headersSize}B headers")
             if (resp.bodySize >= 0) append("  ${resp.bodySize}B body")
         }
+        val panelWidth = Terminal.size().dimx - leftSize.value
         val allRows = buildList {
             add(hbox(
                 text(" Response Headers").bold().color(Color.Black),
@@ -331,7 +321,7 @@ fun main(args: Array<String>) {
                 filler(),
             ).bgcolor(beige))
             add(separatorEmpty())
-            addAll(headerRows(resp.headers))
+            addAll(headerRows(resp.headers, panelWidth))
             if (resp.redirectURL.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Redirect").bold().color(Color.Black), filler()).bgcolor(beige))
@@ -346,11 +336,14 @@ fun main(args: Array<String>) {
             }
         }
         respHeadersRowCount = allRows.size
-        vbox(*allRows.drop(respHeadersScrollY.value).toTypedArray()).flex()
-    })
+        val respH = Terminal.size().dimy - 6
+        return hbox(
+            vbox(*allRows.drop(respHeadersScrollY.value).toTypedArray()).flex(),
+            vScrollBar(respHeadersScrollY.value, allRows.size, respH),
+        ).flex()
+    }
 
-    // Tab 2: Response body — line-clipping driven by bodyScrollY/X state
-    tabContainer.add(renderer {
+    fun bodyTabContent(): Element {
         val entry = entries[selectedEntry.value]
         val content = entry.response.content
         val bodyText = content.text ?: "(no body)"
@@ -367,7 +360,9 @@ fun main(args: Array<String>) {
         bodyLineCount = lines.size
         bodyMaxLineWidth = lines.maxOfOrNull { it.length } ?: 0
         val visibleLines = lines.drop(bodyScrollY.value)
-        val panelWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2)
+        val panelWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2 - 1)
+        val bodyH = maxOf(1, Terminal.size().dimy - 8)
+        val maxScrollX = maxOf(0, bodyMaxLineWidth - panelWidth)
         val sizeInfo = buildString {
             append("  ${content.size}B")
             val comp = content.compression
@@ -375,33 +370,37 @@ fun main(args: Array<String>) {
             val enc = content.encoding
             if (!enc.isNullOrEmpty()) append("  $enc")
         }
-        vbox(
+        return vbox(
             hbox(
                 text(" Response Body").bold().color(Color.Black),
                 if (mimeType.isNotEmpty()) text("  $mimeType").color(Color.Blue) else text(""),
                 text(sizeInfo).color(Color.Black),
                 text("  ${lines.size} lines").color(Color.Black),
                 filler(),
+                text("◄").let { if (bodyScrollX.value > 0) it.color(Color.Black) else it.dim() },
+                text("► ").let { if (bodyScrollX.value < maxScrollX) it.color(Color.Black) else it.dim() },
             ).bgcolor(beige),
             separatorEmpty(),
-            vbox(*visibleLines.mapIndexed { idx, line ->
-                if (isJsonBody) {
-                    val spans = bodyHighlightedLines!!.getOrElse(bodyScrollY.value + idx) { emptyList() }
-                    renderHighlightedLine(clipSpans(spans, bodyScrollX.value, panelWidth))
-                } else {
-                    val displayed = when {
-                        bodyScrollX.value <= 0 -> line
-                        bodyScrollX.value >= line.length -> ""
-                        else -> line.substring(bodyScrollX.value)
+            hbox(
+                vbox(*visibleLines.mapIndexed { idx, line ->
+                    if (isJsonBody) {
+                        val spans = bodyHighlightedLines!!.getOrElse(bodyScrollY.value + idx) { emptyList() }
+                        renderHighlightedLine(clipSpans(spans, bodyScrollX.value, panelWidth))
+                    } else {
+                        val displayed = when {
+                            bodyScrollX.value <= 0 -> line
+                            bodyScrollX.value >= line.length -> ""
+                            else -> line.substring(bodyScrollX.value)
+                        }
+                        text(displayed)
                     }
-                    text(displayed)
-                }
-            }.toTypedArray()).flex(),
+                }.toTypedArray()).flex(),
+                vScrollBar(bodyScrollY.value, bodyLineCount, bodyH),
+            ).flex(),
         ).flex()
-    })
+    }
 
-    // Tab 3: Timings + connection + cache
-    tabContainer.add(renderer {
+    fun timingsTabContent(): Element {
         val idx = selectedEntry.value
         if (idx != timingsLastEntry) { timingsLastEntry = idx; timingsScrollY.value = 0 }
         val entry = entries[idx]
@@ -457,7 +456,8 @@ fun main(args: Array<String>) {
             }
         }
         timingsRowCount = allRows.size
-        vbox(
+        val timingsH = maxOf(1, Terminal.size().dimy - 8)
+        return vbox(
             hbox(
                 text(" Timings").bold().color(Color.Black),
                 text("  Total: ").color(Color.Black),
@@ -465,35 +465,65 @@ fun main(args: Array<String>) {
                 filler(),
             ).bgcolor(beige),
             separatorEmpty(),
-            vbox(*allRows.drop(timingsScrollY.value).toTypedArray()).flex(),
+            hbox(
+                vbox(*allRows.drop(timingsScrollY.value).toTypedArray()).flex(),
+                vScrollBar(timingsScrollY.value, allRows.size, timingsH),
+            ).flex(),
         ).flex()
-    })
+    }
 
-    fun renderTabBar(): Element {
-        val detailsFocused = focusedPanel.value == 1
-        val tabItems = tabLabels.mapIndexed { i, label ->
-            val isActive = i == tabSelected.value
+    val entryLabels = entries.map { "${it.request.method}  ${it.request.url}" }
+    val requestListMenu = menu(entryLabels, selectedEntry)
+
+    val leftSubPanel = tab(leftSubFocus)
+    leftSubPanel.add(requestListMenu)
+    leftSubPanel.add(searchInput)
+
+    val requestListRenderer = leftSubPanel.decorateRender { buildRequestListContent(it) }
+        .catchEvent { event ->
+            val filtered = getFilteredEntries()
+            val currentPos = filtered.indexOfFirst { it.first == selectedEntry.value }
+            val isSearchFocused = leftSubFocus.value == 1
+            val maxHOffset = entries[selectedEntry.value].request.url.length
             when {
-                isActive && detailsFocused -> hbox(
-                    text(" "),
-                    text("${i + 1}").bold().underlined().color(Color.White),
-                    text(" $label ").bold().color(Color.White),
-                ).bgcolor(Color.rgb(0xDA.toUByte(), 0x8E.toUByte(), 0xE7.toUByte()))
-                isActive -> hbox(
-                    text(" "),
-                    text("${i + 1}").bold().underlined().color(Color.CyanLight),
-                    text(" $label ").bold(),
-                )
-                else -> hbox(
-                    text(" "),
-                    text("${i + 1}").underlined().color(Color.GrayDark),
-                    text(" $label ").color(Color.GrayDark),
-                )
+                event.isMouse -> true
+                event.isKey("/") && !isSearchFocused -> { leftSubFocus.value = 1; true }
+                event.isKey(Key.Escape) && isSearchFocused -> { leftSubFocus.value = 0; true }
+                event.isKey(Key.Return) && isSearchFocused -> { leftSubFocus.value = 0; true }
+                (event.isKey(Key.ArrowRight) || event.isKey("l")) && !isSearchFocused -> {
+                    hScrollOffset.value = minOf(hScrollOffset.value + 5, maxHOffset); true
+                }
+                (event.isKey(Key.ArrowLeft) || event.isKey("h")) && !isSearchFocused -> {
+                    hScrollOffset.value = maxOf(hScrollOffset.value - 5, 0); true
+                }
+                event.isKey(Key.ArrowUp) -> {
+                    hScrollOffset.value = 0
+                    when {
+                        filtered.isEmpty() -> { }
+                        currentPos < 0 -> selectedEntry.value = filtered.last().first
+                        currentPos > 0 -> selectedEntry.value = filtered[currentPos - 1].first
+                    }
+                    true
+                }
+                event.isKey(Key.ArrowDown) -> {
+                    hScrollOffset.value = 0
+                    when {
+                        filtered.isEmpty() -> { }
+                        currentPos < 0 -> selectedEntry.value = filtered.first().first
+                        currentPos < filtered.size - 1 -> selectedEntry.value = filtered[currentPos + 1].first
+                    }
+                    true
+                }
+                event.isKey(Key.Return) && !isSearchFocused -> { focusedPanel.value = 1; true }
+                else -> false
             }
         }
-        val withSeps = tabItems.flatMap { listOf(it, text(" │ ").dim()) }.dropLast(1)
-        return hbox(*withSeps.toTypedArray())
-    }
+
+    val tabContainer = tab(tabSelected)
+    tabContainer.add(renderer { requestTabContent() })
+    tabContainer.add(renderer { responseHeadersTabContent() })
+    tabContainer.add(renderer { bodyTabContent() })
+    tabContainer.add(renderer { timingsTabContent() })
 
     val detailRenderer = renderer(tabContainer) {
         val entry = entries[selectedEntry.value]
@@ -507,7 +537,7 @@ fun main(args: Array<String>) {
                 text("  ${entry.request.url}"),
             ),
             separator(),
-            renderTabBar(),
+            renderTabBar(tabSelected.value, focusedPanel.value, tabLabels),
             separator(),
             tabContainer.render().flex(),
         ).flex().window(run {
@@ -533,8 +563,6 @@ fun main(args: Array<String>) {
         val onReqHeaders = onDetails && tabSelected.value == 0
         val onRespHeaders = onDetails && tabSelected.value == 1
         val onTimings = onDetails && tabSelected.value == 3
-        // Fixed rows outside the scrollable area: window border (2) + URL bar (1) + separator (1) + tab bar (1) + separator (1) = 6
-        // Tabs 2 and 3 also have a section header + empty separator inside = 2 more
         val contentHeight = Terminal.size().dimy - 6
         when {
             event.isMouse -> true
@@ -555,7 +583,7 @@ fun main(args: Array<String>) {
                 bodyScrollX.value = maxOf(0, bodyScrollX.value - 4); true
             }
             (event.isKey(Key.ArrowRight) || event.isKey("l")) && onBody -> {
-                val panelW = maxOf(1, Terminal.size().dimx - leftSize.value - 2)
+                val panelW = maxOf(1, Terminal.size().dimx - leftSize.value - 2 - 1)
                 val maxScrollX = maxOf(0, bodyMaxLineWidth - panelW)
                 bodyScrollX.value = minOf(maxScrollX, bodyScrollX.value + 4); true
             }
