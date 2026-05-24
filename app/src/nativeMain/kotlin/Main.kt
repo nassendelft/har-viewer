@@ -40,6 +40,8 @@ fun main(args: Array<String>) {
     val searchQuery = StringState("")
     val leftSubFocus = IntState(0) // 0 = list, 1 = search input
     var bodyLastContent = ""
+    var bodyHighlightedLines: List<List<StyledSpan>>? = null
+    var reqBodyHighlightedLines: List<List<StyledSpan>>? = null
     var reqHeadersLastEntry = -1
     var respHeadersLastEntry = -1
     var timingsLastEntry = -1
@@ -223,7 +225,7 @@ fun main(args: Array<String>) {
     // Tab 0: Request overview + headers + body
     tabContainer.add(renderer {
         val idx = selectedEntry.value
-        if (idx != reqHeadersLastEntry) { reqHeadersLastEntry = idx; reqHeadersScrollY.value = 0 }
+        if (idx != reqHeadersLastEntry) { reqHeadersLastEntry = idx; reqHeadersScrollY.value = 0; reqBodyHighlightedLines = null }
         val entry = entries[idx]
         val req = entry.request
         val postData = req.postData
@@ -282,6 +284,9 @@ fun main(args: Array<String>) {
                     addAll(paramRows(postData.params))
                 } else if (bodyLines.isEmpty()) {
                     add(text("(empty)").dim())
+                } else if (isJson(postData.mimeType)) {
+                    if (reqBodyHighlightedLines == null) reqBodyHighlightedLines = tokenizeJsonLines(postData.text ?: "")
+                    reqBodyHighlightedLines!!.forEach { spans -> add(renderHighlightedLine(spans)) }
                 } else {
                     bodyLines.forEach { add(text(it)) }
                 }
@@ -345,8 +350,11 @@ fun main(args: Array<String>) {
             bodyLastContent = bodyText
             bodyScrollX.value = 0
             bodyScrollY.value = 0
+            bodyHighlightedLines = null
         }
         val mimeType = content.mimeType
+        val isJsonBody = isJson(mimeType)
+        if (isJsonBody && bodyHighlightedLines == null) bodyHighlightedLines = tokenizeJsonLines(bodyText)
         val lines = bodyText.lines()
         val visibleLines = lines.drop(bodyScrollY.value)
         val sizeInfo = buildString {
@@ -365,13 +373,18 @@ fun main(args: Array<String>) {
                 filler(),
             ).bgcolor(beige),
             separatorEmpty(),
-            vbox(*visibleLines.map { line ->
-                val displayed = when {
-                    bodyScrollX.value <= 0 -> line
-                    bodyScrollX.value >= line.length -> ""
-                    else -> line.substring(bodyScrollX.value)
+            vbox(*visibleLines.mapIndexed { idx, line ->
+                if (isJsonBody) {
+                    val spans = bodyHighlightedLines!!.getOrElse(bodyScrollY.value + idx) { emptyList() }
+                    renderHighlightedLine(clipSpans(spans, bodyScrollX.value))
+                } else {
+                    val displayed = when {
+                        bodyScrollX.value <= 0 -> line
+                        bodyScrollX.value >= line.length -> ""
+                        else -> line.substring(bodyScrollX.value)
+                    }
+                    text(displayed)
                 }
-                text(displayed)
             }.toTypedArray()).flex(),
         ).flex()
     })
