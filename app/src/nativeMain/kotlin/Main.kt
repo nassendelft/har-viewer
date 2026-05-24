@@ -81,6 +81,16 @@ private fun vScrollBar(scrollY: Int, total: Int, visible: Int): Element {
     }.toTypedArray())
 }
 
+private fun hScrollBar(scrollX: Int, total: Int, visible: Int): Element {
+    if (total <= visible) return hbox(*(0 until maxOf(1, visible)).map { text(" ") }.toTypedArray())
+    val thumbW = maxOf(1, visible * visible / total)
+    val thumbX = ((scrollX.toLong() * maxOf(0, visible - thumbW)) / maxOf(1, total - visible)).toInt()
+    return hbox(*(0 until visible).map { i ->
+        if (i in thumbX until thumbX + thumbW) text("▁").color(Color.GrayLight)
+        else text("▁").dim()
+    }.toTypedArray())
+}
+
 private fun renderTabBar(tabSelected: Int, focusedPanel: Int, tabLabels: List<String>): Element {
     val detailsFocused = focusedPanel == 1
     val tabItems = tabLabels.mapIndexed { i, label ->
@@ -143,7 +153,7 @@ fun main(args: Array<String>) {
     var bodyMaxLineWidth = 0
 
     val maxMethodLen = entries.maxOf { it.request.method.length }
-    val tabLabels = listOf("Request", "Resp Headers", "Body", "Timings")
+    val tabLabels = listOf("Request", "Resp Headers", "Body", "Diagnostics")
 
     val searchInput = input(searchQuery, "filter (regex)…")
 
@@ -208,9 +218,13 @@ fun main(args: Array<String>) {
                     .flex()
         }
 
+        val maxUrlLen = filtered.maxOfOrNull { (_, e) -> e.request.url.length } ?: 0
+        val visibleW = maxOf(1, leftSize.value - 2)
+
         return vbox(
             searchElem,
             listElem,
+            hScrollBar(hScrollOffset.value, maxUrlLen, visibleW),
         ).flex()
             .window(run {
                 val labelColor = if (focusedPanel.value == 0) Color.CyanLight else Color.GrayDark
@@ -230,11 +244,14 @@ fun main(args: Array<String>) {
         val allRows = buildList {
             add(hbox(text(" Overview").bold().color(black), filler()).bgcolor(beige))
             add(separatorEmpty())
-            add(hbox(text("  Started    ").color(Color.CyanLight), text(entry.startedDateTime)))
-            add(hbox(text("  HTTP       ").color(Color.CyanLight), text(req.httpVersion)))
-            entry.serverIPAddress?.let { add(hbox(text("  Server IP  ").color(Color.CyanLight), text(it))) }
-            entry.connection?.let { add(hbox(text("  Connection ").color(Color.CyanLight), text(it))) }
-            entry.pageref?.let { add(hbox(text("  Page       ").color(Color.CyanLight), text(it))) }
+            val overviewRows = buildList {
+                add(hbox(text("Started    ").color(Color.CyanLight),text(" │ ").dim(), text(entry.startedDateTime)))
+                add(hbox(text("HTTP       ").color(Color.CyanLight),text(" │ ").dim(), text(req.httpVersion)))
+                entry.serverIPAddress?.let { add(hbox(text("Server IP  ").color(Color.CyanLight),text(" │ ").dim(), text(it))) }
+                entry.connection?.let { add(hbox(text("Connection ").color(Color.CyanLight),text(" │ ").dim(), text(it))) }
+                entry.pageref?.let { add(hbox(text("Page       ").color(Color.CyanLight),text(" │ ").dim(), text(it))) }
+            }
+            overviewRows.forEachIndexed { i, row -> add(row); if (i < overviewRows.lastIndex) add(separator()) }
             if (req.queryString.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Query Parameters").bold().color(black), text("  ${req.queryString.size}").color(black), filler()).bgcolor(beige))
@@ -363,7 +380,6 @@ fun main(args: Array<String>) {
         val visibleLines = lines.drop(bodyScrollY.value)
         val panelWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2 - 1)
         val bodyH = maxOf(1, Terminal.size().dimy - 8)
-        val maxScrollX = maxOf(0, bodyMaxLineWidth - panelWidth)
         val sizeInfo = buildString {
             append("  ${content.size}B")
             val comp = content.compression
@@ -378,8 +394,6 @@ fun main(args: Array<String>) {
                 text(sizeInfo).color(black),
                 text("  ${lines.size} lines").color(black),
                 filler(),
-                text("◄").let { if (bodyScrollX.value > 0) it.color(black) else it.dim() },
-                text("► ").let { if (bodyScrollX.value < maxScrollX) it.color(black) else it.dim() },
             ).bgcolor(beige),
             separatorEmpty(),
             hbox(
@@ -398,6 +412,7 @@ fun main(args: Array<String>) {
                 }.toTypedArray()).flex(),
                 vScrollBar(bodyScrollY.value, bodyLineCount, bodyH),
             ).flex(),
+            hScrollBar(bodyScrollX.value, bodyMaxLineWidth, panelWidth),
         ).flex()
     }
 
@@ -460,7 +475,7 @@ fun main(args: Array<String>) {
         val timingsH = maxOf(1, Terminal.size().dimy - 8)
         return vbox(
             hbox(
-                text(" Timings").bold().color(black),
+                text(" Diagnostics").bold().color(black),
                 text("  Total: ").color(black),
                 text("$totalMs ms").bold().color(yellow),
                 filler(),
@@ -485,7 +500,8 @@ fun main(args: Array<String>) {
             val filtered = getFilteredEntries()
             val currentPos = filtered.indexOfFirst { it.first == selectedEntry.value }
             val isSearchFocused = leftSubFocus.value == 1
-            val maxHOffset = entries[selectedEntry.value].request.url.length
+            val maxUrlLen = filtered.maxOfOrNull { (_, e) -> e.request.url.length } ?: 0
+            val maxHOffset = maxOf(0, maxUrlLen - maxOf(1, leftSize.value - 2))
             when {
                 event.isMouse -> true
                 event.isKey("/") && !isSearchFocused -> { leftSubFocus.value = 1; true }
@@ -498,7 +514,6 @@ fun main(args: Array<String>) {
                     hScrollOffset.value = maxOf(hScrollOffset.value - 5, 0); true
                 }
                 event.isKey(Key.ArrowUp) -> {
-                    hScrollOffset.value = 0
                     when {
                         filtered.isEmpty() -> { }
                         currentPos < 0 -> selectedEntry.value = filtered.last().first
@@ -507,7 +522,6 @@ fun main(args: Array<String>) {
                     true
                 }
                 event.isKey(Key.ArrowDown) -> {
-                    hScrollOffset.value = 0
                     when {
                         filtered.isEmpty() -> { }
                         currentPos < 0 -> selectedEntry.value = filtered.first().first
