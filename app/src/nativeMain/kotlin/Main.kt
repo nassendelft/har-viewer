@@ -1,4 +1,6 @@
+import har.Cookie
 import har.Header
+import har.Param
 import har.parseHar
 import kotlinx.cinterop.ExperimentalForeignApi
 import nl.ncaj.*
@@ -183,22 +185,91 @@ fun main(args: Array<String>) {
         return rows
     }
 
-    // Tab 0: Request headers + body
+    fun cookieRows(cookies: List<Cookie>): List<Element> {
+        if (cookies.isEmpty()) return listOf(text("(none)").dim())
+        val nameWidth = cookies.maxOf { it.name.length }
+        val rows = mutableListOf<Element>()
+        for ((i, cookie) in cookies.withIndex()) {
+            rows.add(hbox(text(cookie.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(cookie.value).color(beige)))
+            val meta = listOfNotNull(
+                cookie.path?.let { "path=$it" },
+                cookie.domain?.let { "domain=$it" },
+                cookie.expires?.let { "expires=$it" },
+                if (cookie.httpOnly == true) "HttpOnly" else null,
+                if (cookie.secure == true) "Secure" else null,
+            )
+            if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
+            if (i < cookies.lastIndex) rows.add(separator())
+        }
+        return rows
+    }
+
+    fun paramRows(params: List<Param>): List<Element> {
+        if (params.isEmpty()) return emptyList()
+        val nameWidth = params.maxOf { it.name.length }
+        val rows = mutableListOf<Element>()
+        for ((i, param) in params.withIndex()) {
+            rows.add(hbox(text(param.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(param.value ?: "").color(beige)))
+            val meta = listOfNotNull(
+                param.fileName?.let { "file=$it" },
+                param.contentType?.let { "type=$it" },
+            )
+            if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
+            if (i < params.lastIndex) rows.add(separator())
+        }
+        return rows
+    }
+
+    // Tab 0: Request overview + headers + body
     tabContainer.add(renderer {
         val idx = selectedEntry.value
         if (idx != reqHeadersLastEntry) { reqHeadersLastEntry = idx; reqHeadersScrollY.value = 0 }
         val entry = entries[idx]
-        val headerRows = headerRows(entry.request.headers)
-        val postData = entry.request.postData
+        val req = entry.request
+        val postData = req.postData
         val bodyLines = postData?.text?.lines() ?: emptyList()
         val allRows = buildList {
+            // Overview
+            add(hbox(text(" Overview").bold().color(Color.Black), filler()).bgcolor(beige))
+            add(separatorEmpty())
+            add(hbox(text("  Started    ").color(Color.CyanLight), text(entry.startedDateTime)))
+            add(hbox(text("  HTTP       ").color(Color.CyanLight), text(req.httpVersion)))
+            entry.serverIPAddress?.let { add(hbox(text("  Server IP  ").color(Color.CyanLight), text(it))) }
+            entry.connection?.let { add(hbox(text("  Connection ").color(Color.CyanLight), text(it))) }
+            entry.pageref?.let { add(hbox(text("  Page       ").color(Color.CyanLight), text(it))) }
+            // Query string
+            if (req.queryString.isNotEmpty()) {
+                add(separatorEmpty())
+                add(hbox(text(" Query Parameters").bold().color(Color.Black), text("  ${req.queryString.size}").color(Color.Black), filler()).bgcolor(beige))
+                add(separatorEmpty())
+                val nameWidth = req.queryString.maxOf { it.name.length }
+                req.queryString.forEachIndexed { i, p ->
+                    add(hbox(text(p.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(p.value).color(beige)))
+                    if (i < req.queryString.lastIndex) add(separator())
+                }
+            }
+            // Headers
+            add(separatorEmpty())
+            val reqSizeInfo = buildString {
+                if (req.headersSize >= 0) append("  ${req.headersSize}B headers")
+                if (req.bodySize >= 0) append("  ${req.bodySize}B body")
+            }
             add(hbox(
                 text(" Request Headers").bold().color(Color.Black),
-                text("  ${entry.request.headers.size} headers").color(Color.Black),
+                text("  ${req.headers.size}").color(Color.Black),
+                text(reqSizeInfo).color(Color.Black),
                 filler(),
             ).bgcolor(beige))
             add(separatorEmpty())
-            addAll(headerRows)
+            addAll(headerRows(req.headers))
+            // Cookies
+            if (req.cookies.isNotEmpty()) {
+                add(separatorEmpty())
+                add(hbox(text(" Request Cookies").bold().color(Color.Black), text("  ${req.cookies.size}").color(Color.Black), filler()).bgcolor(beige))
+                add(separatorEmpty())
+                addAll(cookieRows(req.cookies))
+            }
+            // Post body
             if (postData != null) {
                 add(separatorEmpty())
                 add(hbox(
@@ -207,7 +278,9 @@ fun main(args: Array<String>) {
                     filler(),
                 ).bgcolor(beige))
                 add(separatorEmpty())
-                if (bodyLines.isEmpty()) {
+                if (postData.params.isNotEmpty()) {
+                    addAll(paramRows(postData.params))
+                } else if (bodyLines.isEmpty()) {
                     add(text("(empty)").dim())
                 } else {
                     bodyLines.forEach { add(text(it)) }
@@ -217,13 +290,13 @@ fun main(args: Array<String>) {
         vbox(*allRows.drop(reqHeadersScrollY.value).toTypedArray()).flex()
     })
 
-    // Tab 1: Response headers
+    // Tab 1: Response headers + cookies
     tabContainer.add(renderer {
         val idx = selectedEntry.value
         if (idx != respHeadersLastEntry) { respHeadersLastEntry = idx; respHeadersScrollY.value = 0 }
         val entry = entries[idx]
-        val rows = headerRows(entry.response.headers)
-        val status = entry.response.status
+        val resp = entry.response
+        val status = resp.status
         val sColor = when {
             status < 200 -> Color.GrayLight
             status < 300 -> Color.GreenLight
@@ -231,35 +304,63 @@ fun main(args: Array<String>) {
             status < 500 -> yellow
             else -> Color.RedLight
         }
-        vbox(
-            hbox(
+        val respSizeInfo = buildString {
+            if (resp.headersSize >= 0) append("  ${resp.headersSize}B headers")
+            if (resp.bodySize >= 0) append("  ${resp.bodySize}B body")
+        }
+        val allRows = buildList {
+            add(hbox(
                 text(" Response Headers").bold().color(Color.Black),
                 text("  "),
-                text("$status${if (entry.response.statusText.isNotEmpty()) " ${entry.response.statusText}" else ""}").bold().color(sColor),
-                text("  ${entry.response.headers.size} headers").color(Color.Black),
+                text("$status${if (resp.statusText.isNotEmpty()) " ${resp.statusText}" else ""}").bold().color(sColor),
+                text("  ${resp.httpVersion}").color(Color.Black),
+                text("  ${resp.headers.size} headers").color(Color.Black),
+                text(respSizeInfo).color(Color.Black),
                 filler(),
-            ).bgcolor(beige),
-            separatorEmpty(),
-            vbox(*rows.drop(respHeadersScrollY.value).toTypedArray()).flex(),
-        ).flex()
+            ).bgcolor(beige))
+            add(separatorEmpty())
+            addAll(headerRows(resp.headers))
+            if (resp.redirectURL.isNotEmpty()) {
+                add(separatorEmpty())
+                add(hbox(text(" Redirect").bold().color(Color.Black), filler()).bgcolor(beige))
+                add(separatorEmpty())
+                add(hbox(text("  "), text(resp.redirectURL).color(Color.CyanLight)))
+            }
+            if (resp.cookies.isNotEmpty()) {
+                add(separatorEmpty())
+                add(hbox(text(" Response Cookies").bold().color(Color.Black), text("  ${resp.cookies.size}").color(Color.Black), filler()).bgcolor(beige))
+                add(separatorEmpty())
+                addAll(cookieRows(resp.cookies))
+            }
+        }
+        vbox(*allRows.drop(respHeadersScrollY.value).toTypedArray()).flex()
     })
 
     // Tab 2: Response body — line-clipping driven by bodyScrollY/X state
     tabContainer.add(renderer {
         val entry = entries[selectedEntry.value]
-        val content = entry.response.content.text ?: "(no body)"
-        if (content != bodyLastContent) {
-            bodyLastContent = content
+        val content = entry.response.content
+        val bodyText = content.text ?: "(no body)"
+        if (bodyText != bodyLastContent) {
+            bodyLastContent = bodyText
             bodyScrollX.value = 0
             bodyScrollY.value = 0
         }
-        val mimeType = entry.response.content.mimeType
-        val lines = content.lines()
+        val mimeType = content.mimeType
+        val lines = bodyText.lines()
         val visibleLines = lines.drop(bodyScrollY.value)
+        val sizeInfo = buildString {
+            append("  ${content.size}B")
+            val comp = content.compression
+            if (comp != null && comp > 0) append(" (${comp}B saved)")
+            val enc = content.encoding
+            if (!enc.isNullOrEmpty()) append("  $enc")
+        }
         vbox(
             hbox(
                 text(" Response Body").bold().color(Color.Black),
                 if (mimeType.isNotEmpty()) text("  $mimeType").color(Color.Blue) else text(""),
+                text(sizeInfo).color(Color.Black),
                 text("  ${lines.size} lines").color(Color.Black),
                 filler(),
             ).bgcolor(beige),
@@ -275,11 +376,12 @@ fun main(args: Array<String>) {
         ).flex()
     })
 
-    // Tab 3: Timings
+    // Tab 3: Timings + connection + cache
     tabContainer.add(renderer {
         val idx = selectedEntry.value
         if (idx != timingsLastEntry) { timingsLastEntry = idx; timingsScrollY.value = 0 }
-        val t = entries[idx].timings
+        val entry = entries[idx]
+        val t = entry.timings
         val positiveMs = listOfNotNull(t.blocked, t.dns, t.connect, t.ssl, t.send, t.wait, t.receive).filter { it >= 0 }
         val totalMs = positiveMs.sum()
         val maxMs = positiveMs.maxOrNull() ?: 1.0
@@ -291,27 +393,45 @@ fun main(args: Array<String>) {
 
         fun timingRow(label: String, ms: Double): Element =
             if (ms < 0) {
-                hbox(
-                    text(" ${label.padEnd(8)}").color(Color.GrayDark),
-                    text("  n/a").dim(),
-                )
+                hbox(text(" ${label.padEnd(8)}").color(Color.GrayDark), text("  n/a").dim())
             } else {
-                hbox(
-                    text(" ${label.padEnd(8)}").color(Color.CyanLight),
-                    text("  ${bar(ms)} ").color(Color.Blue),
-                    text("$ms ms").color(yellow),
-                )
+                hbox(text(" ${label.padEnd(8)}").color(Color.CyanLight), text("  ${bar(ms)} ").color(Color.Blue), text("$ms ms").color(yellow))
             }
 
-        val allRows = listOf(
-            timingRow("Blocked", t.blocked ?: 0.0),
-            timingRow("DNS", t.dns ?: 0.0),
-            timingRow("Connect", t.connect ?: 0.0),
-            timingRow("SSL", t.ssl ?: 0.0),
-            timingRow("Send", t.send),
-            timingRow("Wait", t.wait),
-            timingRow("Receive", t.receive),
-        )
+        fun cacheStateRows(label: String, cs: har.CacheState): List<Element> = buildList {
+            add(hbox(text("  $label").bold().color(Color.CyanLight)))
+            add(hbox(text("    Last Access  ").dim(), text(cs.lastAccess)))
+            add(hbox(text("    ETag         ").dim(), text(cs.eTag)))
+            add(hbox(text("    Hit Count    ").dim(), text("${cs.hitCount}")))
+            cs.expires?.let { add(hbox(text("    Expires      ").dim(), text(it))) }
+        }
+
+        val allRows = buildList {
+            addAll(listOf(
+                timingRow("Blocked", t.blocked ?: -1.0),
+                timingRow("DNS",     t.dns     ?: -1.0),
+                timingRow("Connect", t.connect ?: -1.0),
+                timingRow("SSL",     t.ssl     ?: -1.0),
+                timingRow("Send",    t.send),
+                timingRow("Wait",    t.wait),
+                timingRow("Receive", t.receive),
+            ))
+            if (entry.serverIPAddress != null || entry.connection != null) {
+                add(separatorEmpty())
+                add(hbox(text(" Connection").bold().color(Color.Black), filler()).bgcolor(beige))
+                add(separatorEmpty())
+                entry.serverIPAddress?.let { add(hbox(text("  Server IP  ").color(Color.CyanLight), text(it))) }
+                entry.connection?.let { add(hbox(text("  TCP conn   ").color(Color.CyanLight), text(it))) }
+            }
+            val cache = entry.cache
+            if (cache.beforeRequest != null || cache.afterRequest != null) {
+                add(separatorEmpty())
+                add(hbox(text(" Cache").bold().color(Color.Black), filler()).bgcolor(beige))
+                add(separatorEmpty())
+                cache.beforeRequest?.let { addAll(cacheStateRows("Before Request", it)) }
+                cache.afterRequest?.let { addAll(cacheStateRows("After Request", it)) }
+            }
+        }
         vbox(
             hbox(
                 text(" Timings").bold().color(Color.Black),
