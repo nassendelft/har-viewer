@@ -122,6 +122,12 @@ class Element internal constructor(internal val handle: ElementHandle)
 
 fun Element.destroy() = ftxui_element_destroy(handle)
 
+data class Dimensions(val dimx: Int, val dimy: Int)
+
+object Terminal {
+    fun size(): Dimensions = Dimensions(ftxui_terminal_width(), ftxui_terminal_height())
+}
+
 class FtxUIApp internal constructor(internal val handle: ftxui_app_handle_t) {
     internal val cleanups = mutableListOf<() -> Unit>()
 

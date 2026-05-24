@@ -20,16 +20,19 @@ fun renderHighlightedLine(spans: List<StyledSpan>): Element =
     if (spans.isEmpty()) text("")
     else hbox(*spans.map { text(it.text).color(colorFor(it.type)) }.toTypedArray())
 
-fun clipSpans(spans: List<StyledSpan>, scrollX: Int): List<StyledSpan> {
-    if (scrollX <= 0) return spans
+fun clipSpans(spans: List<StyledSpan>, scrollX: Int, maxWidth: Int = Int.MAX_VALUE): List<StyledSpan> {
+    val rightEdge = if (maxWidth == Int.MAX_VALUE) Int.MAX_VALUE else scrollX + maxWidth
+    if (scrollX <= 0 && rightEdge == Int.MAX_VALUE) return spans
     var offset = 0
     val result = mutableListOf<StyledSpan>()
     for (span in spans) {
         val end = offset + span.text.length
-        when {
-            end <= scrollX -> Unit
-            offset >= scrollX -> result.add(span)
-            else -> result.add(StyledSpan(span.text.substring(scrollX - offset), span.type))
+        if (rightEdge != Int.MAX_VALUE && offset >= rightEdge) break
+        val visStart = maxOf(offset, scrollX)
+        val visEnd = if (rightEdge == Int.MAX_VALUE) end else minOf(end, rightEdge)
+        if (visStart < visEnd) {
+            val text = span.text.substring(visStart - offset, visEnd - offset)
+            if (text.isNotEmpty()) result.add(StyledSpan(text, span.type))
         }
         offset = end
     }

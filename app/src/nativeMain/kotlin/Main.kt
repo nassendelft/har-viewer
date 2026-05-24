@@ -46,6 +46,11 @@ fun main(args: Array<String>) {
     var respHeadersLastEntry = -1
     var timingsLastEntry = -1
     var lastSearchPattern = ""
+    var reqHeadersRowCount = 0
+    var respHeadersRowCount = 0
+    var timingsRowCount = 0
+    var bodyLineCount = 0
+    var bodyMaxLineWidth = 0
 
     val maxMethodLen = entries.maxOf { it.request.method.length }
 
@@ -173,7 +178,7 @@ fun main(args: Array<String>) {
     fun headerRows(headers: List<Header>): List<Element> {
         if (headers.isEmpty()) return listOf(text("(none)").dim())
         val nameWidth = headers.maxOf { it.name.length }
-        val chunkSize = 60
+        val chunkSize = maxOf(20, Terminal.size().dimx - leftSize.value - 1 - 2 - nameWidth - 3)
         val rows = mutableListOf<Element>()
         for ((i, header) in headers.withIndex()) {
             val chunks = header.value.chunked(chunkSize)
@@ -286,12 +291,14 @@ fun main(args: Array<String>) {
                     add(text("(empty)").dim())
                 } else if (isJson(postData.mimeType)) {
                     if (reqBodyHighlightedLines == null) reqBodyHighlightedLines = tokenizeJsonLines(postData.text ?: "")
-                    reqBodyHighlightedLines!!.forEach { spans -> add(renderHighlightedLine(spans)) }
+                    val reqBodyWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2)
+                    reqBodyHighlightedLines!!.forEach { spans -> add(renderHighlightedLine(clipSpans(spans, 0, reqBodyWidth))) }
                 } else {
                     bodyLines.forEach { add(text(it)) }
                 }
             }
         }
+        reqHeadersRowCount = allRows.size
         vbox(*allRows.drop(reqHeadersScrollY.value).toTypedArray()).flex()
     })
 
@@ -338,6 +345,7 @@ fun main(args: Array<String>) {
                 addAll(cookieRows(resp.cookies))
             }
         }
+        respHeadersRowCount = allRows.size
         vbox(*allRows.drop(respHeadersScrollY.value).toTypedArray()).flex()
     })
 
@@ -356,7 +364,10 @@ fun main(args: Array<String>) {
         val isJsonBody = isJson(mimeType)
         if (isJsonBody && bodyHighlightedLines == null) bodyHighlightedLines = tokenizeJsonLines(bodyText)
         val lines = bodyText.lines()
+        bodyLineCount = lines.size
+        bodyMaxLineWidth = lines.maxOfOrNull { it.length } ?: 0
         val visibleLines = lines.drop(bodyScrollY.value)
+        val panelWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2)
         val sizeInfo = buildString {
             append("  ${content.size}B")
             val comp = content.compression
@@ -376,7 +387,7 @@ fun main(args: Array<String>) {
             vbox(*visibleLines.mapIndexed { idx, line ->
                 if (isJsonBody) {
                     val spans = bodyHighlightedLines!!.getOrElse(bodyScrollY.value + idx) { emptyList() }
-                    renderHighlightedLine(clipSpans(spans, bodyScrollX.value))
+                    renderHighlightedLine(clipSpans(spans, bodyScrollX.value, panelWidth))
                 } else {
                     val displayed = when {
                         bodyScrollX.value <= 0 -> line
@@ -445,6 +456,7 @@ fun main(args: Array<String>) {
                 cache.afterRequest?.let { addAll(cacheStateRows("After Request", it)) }
             }
         }
+        timingsRowCount = allRows.size
         vbox(
             hbox(
                 text(" Timings").bold().color(Color.Black),
@@ -512,7 +524,6 @@ fun main(args: Array<String>) {
     val mainContainer = renderer(panelRouter) {
         hbox(
             requestListRenderer.render().size(WidthOrHeight.Width, Constraint.Equal, leftSize.value),
-            separatorEmpty(),
             detailRenderer.render().flex(),
         )
     }.catchEvent { event ->
@@ -522,6 +533,9 @@ fun main(args: Array<String>) {
         val onReqHeaders = onDetails && tabSelected.value == 0
         val onRespHeaders = onDetails && tabSelected.value == 1
         val onTimings = onDetails && tabSelected.value == 3
+        // Fixed rows outside the scrollable area: window border (2) + URL bar (1) + separator (1) + tab bar (1) + separator (1) = 6
+        // Tabs 2 and 3 also have a section header + empty separator inside = 2 more
+        val contentHeight = Terminal.size().dimy - 6
         when {
             event.isMouse -> true
             event.isKey("r") && !searchActive -> { focusedPanel.value = 0; true }
@@ -534,31 +548,37 @@ fun main(args: Array<String>) {
                 bodyScrollY.value = maxOf(0, bodyScrollY.value - 1); true
             }
             (event.isKey(Key.ArrowDown) || event.isKey("j")) && onBody -> {
-                bodyScrollY.value += 1; true
+                val maxScroll = maxOf(0, bodyLineCount - (contentHeight - 2))
+                bodyScrollY.value = minOf(maxScroll, bodyScrollY.value + 1); true
             }
             (event.isKey(Key.ArrowLeft) || event.isKey("h")) && onBody -> {
                 bodyScrollX.value = maxOf(0, bodyScrollX.value - 4); true
             }
             (event.isKey(Key.ArrowRight) || event.isKey("l")) && onBody -> {
-                bodyScrollX.value += 4; true
+                val panelW = maxOf(1, Terminal.size().dimx - leftSize.value - 2)
+                val maxScrollX = maxOf(0, bodyMaxLineWidth - panelW)
+                bodyScrollX.value = minOf(maxScrollX, bodyScrollX.value + 4); true
             }
             (event.isKey(Key.ArrowUp) || event.isKey("k")) && onReqHeaders -> {
                 reqHeadersScrollY.value = maxOf(0, reqHeadersScrollY.value - 1); true
             }
             (event.isKey(Key.ArrowDown) || event.isKey("j")) && onReqHeaders -> {
-                reqHeadersScrollY.value += 1; true
+                val maxScroll = maxOf(0, reqHeadersRowCount - contentHeight)
+                reqHeadersScrollY.value = minOf(maxScroll, reqHeadersScrollY.value + 1); true
             }
             (event.isKey(Key.ArrowUp) || event.isKey("k")) && onRespHeaders -> {
                 respHeadersScrollY.value = maxOf(0, respHeadersScrollY.value - 1); true
             }
             (event.isKey(Key.ArrowDown) || event.isKey("j")) && onRespHeaders -> {
-                respHeadersScrollY.value += 1; true
+                val maxScroll = maxOf(0, respHeadersRowCount - contentHeight)
+                respHeadersScrollY.value = minOf(maxScroll, respHeadersScrollY.value + 1); true
             }
             (event.isKey(Key.ArrowUp) || event.isKey("k")) && onTimings -> {
                 timingsScrollY.value = maxOf(0, timingsScrollY.value - 1); true
             }
             (event.isKey(Key.ArrowDown) || event.isKey("j")) && onTimings -> {
-                timingsScrollY.value += 1; true
+                val maxScroll = maxOf(0, timingsRowCount - (contentHeight - 2))
+                timingsScrollY.value = minOf(maxScroll, timingsScrollY.value + 1); true
             }
             else -> false
         }

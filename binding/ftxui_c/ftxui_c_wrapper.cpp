@@ -5,6 +5,7 @@
 #include <ftxui/component/event.hpp>
 #include <ftxui/component/component_options.hpp>
 #include <ftxui/screen/color.hpp> // Include for ftxui::Color
+#include <ftxui/screen/terminal.hpp> // Include for ftxui::Terminal::Size
 #include <ftxui/dom/elements.hpp> // Include for ftxui::size
 #include <ftxui/dom/direction.hpp>
 #include <memory>
@@ -126,6 +127,14 @@ ftxui_app_handle_t ftxui_app_create_terminal_output() {
     } catch (...) {
         return nullptr;
     }
+}
+
+int ftxui_terminal_width() {
+    return ftxui::Terminal::Size().dimx;
+}
+
+int ftxui_terminal_height() {
+    return ftxui::Terminal::Size().dimy;
 }
 
 void ftxui_app_loop(ftxui_app_handle_t app, ftxui_component_handle_t component) {

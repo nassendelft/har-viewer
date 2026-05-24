@@ -581,6 +581,20 @@ void ftxui_app_exit(ftxui_app_handle_t app);
 void ftxui_app_destroy(ftxui_app_handle_t app);
 
 /**
+ * @brief Returns the current terminal width in columns.
+ *
+ * @return int The terminal width.
+ */
+int ftxui_terminal_width();
+
+/**
+ * @brief Returns the current terminal height in rows.
+ *
+ * @return int The terminal height.
+ */
+int ftxui_terminal_height();
+
+/**
  * @brief Cleans up and destroys a component.
  * 
  * @param component The component handle to destroy.
