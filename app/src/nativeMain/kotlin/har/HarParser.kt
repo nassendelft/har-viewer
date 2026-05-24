@@ -7,7 +7,11 @@ import kotlinx.cinterop.usePinned
 import kotlinx.serialization.json.Json
 import platform.posix.*
 
-private val json = Json { ignoreUnknownKeys = true }
+private val json = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+    explicitNulls = false
+}
 
 private fun readFileContent(path: String): String {
     val file = fopen(path, "r") ?: error("Cannot open file: $path")
