@@ -53,7 +53,7 @@ tasks.register<Exec>("configureFtxuiC") {
             add("-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++")
         }
     }
-    commandLine(cmakeArgs)
+    commandLine("bash", "-c", cmakeArgs.joinToString(" "))
     doFirst {
         cmakeBuildDir.mkdirs()
     }

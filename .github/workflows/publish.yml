@@ -55,6 +55,11 @@ jobs:
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libstdc++-11-dev-arm64-cross
 
+      - name: Verify ARM64 static libraries
+        run: |
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/libatomic.a
+
       - uses: actions/cache@v4
         with:
           path: |
@@ -115,12 +120,11 @@ jobs:
           path: har-viewer-linux-x64.tar.gz
 
   release:
-    needs: [build-macos-arm64, build-macos-x64, build-linux-arm64, build-linux-x64]
+    needs: [build-macos-arm64, build-linux-arm64, build-linux-x64]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       macos_arm64_sha256: ${{ steps.checksums.outputs.macos_arm64_sha256 }}
-      macos_x64_sha256: ${{ steps.checksums.outputs.macos_x64_sha256 }}
       linux_arm64_sha256: ${{ steps.checksums.outputs.linux_arm64_sha256 }}
       linux_x64_sha256: ${{ steps.checksums.outputs.linux_x64_sha256 }}
     steps:
@@ -133,7 +137,6 @@ jobs:
         id: checksums
         run: |
           echo "macos_arm64_sha256=$(sha256sum har-viewer-macos-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
-          echo "macos_x64_sha256=$(sha256sum har-viewer-macos-x64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
           echo "linux_arm64_sha256=$(sha256sum har-viewer-linux-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
           echo "linux_x64_sha256=$(sha256sum har-viewer-linux-x64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
 
@@ -149,7 +152,6 @@ jobs:
             --repo ${{ github.repository }} \
             --generate-notes \
             har-viewer-macos-arm64.tar.gz \
-            har-viewer-macos-x64.tar.gz \
             har-viewer-linux-arm64.tar.gz \
             har-viewer-linux-x64.tar.gz
 
@@ -166,7 +168,6 @@ jobs:
         env:
           VERSION: ${{ needs.release.outputs.version }}
           MACOS_ARM64_SHA256: ${{ needs.release.outputs.macos_arm64_sha256 }}
-          MACOS_X64_SHA256: ${{ needs.release.outputs.macos_x64_sha256 }}
           LINUX_ARM64_SHA256: ${{ needs.release.outputs.linux_arm64_sha256 }}
           LINUX_X64_SHA256: ${{ needs.release.outputs.linux_x64_sha256 }}
         run: |
@@ -178,13 +179,8 @@ jobs:
             license "GPL-3.0"
 
             on_macos do
-              if Hardware::CPU.arm?
-                url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-macos-arm64.tar.gz"
-                sha256 "${MACOS_ARM64_SHA256}"
-              else
-                url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-macos-x64.tar.gz"
-                sha256 "${MACOS_X64_SHA256}"
-              end
+              url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-macos-arm64.tar.gz"
+              sha256 "${MACOS_ARM64_SHA256}"
             end
 
             on_linux do

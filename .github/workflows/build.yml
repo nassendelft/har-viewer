@@ -53,6 +53,11 @@ jobs:
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libstdc++-11-dev-arm64-cross
 
+      - name: Verify ARM64 static libraries
+        run: |
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/libatomic.a
+
       - uses: actions/cache@v4
         with:
           path: |

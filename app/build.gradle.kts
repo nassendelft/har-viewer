@@ -24,7 +24,11 @@ kotlin {
     }.binaries.executable {
         when (nativeTargetName) {
             "linuxX64" -> linkerOpts("/usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a", "-lm")
-            "linuxArm64" -> linkerOpts("/usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a", "-lm")
+            "linuxArm64" -> linkerOpts(
+                "/usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a",
+                "/usr/lib/gcc-cross/aarch64-linux-gnu/11/libgcc.a",
+                "-lm"
+            )
         }
     }
 
