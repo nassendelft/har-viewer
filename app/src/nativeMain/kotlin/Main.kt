@@ -120,7 +120,11 @@ private fun renderTabBar(tabSelected: Int, focusedPanel: Int, tabLabels: List<St
 @OptIn(ExperimentalForeignApi::class)
 fun main(args: Array<String>) {
     val path = args.firstOrNull() ?: run { println("Usage: har-viewer <file.har>"); return }
-    val har = parseHar(path)
+    val har = try {
+        parseHar(path)
+    } catch (e: IllegalStateException) {
+        println("Error: ${e.message}"); return
+    }
     val entries = har.log.entries
     if (entries.isEmpty()) {
         println("No entries found in HAR file."); return
