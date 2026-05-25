@@ -22,7 +22,12 @@ kotlin {
         "linuxArm64" -> linuxArm64()
         "linuxX64" -> linuxX64()
         else -> error("Unsupported target: $nativeTargetName")
-    }.binaries.executable()
+    }.binaries.executable {
+        when (nativeTargetName) {
+            "linuxX64" -> linkerOpts("-L/usr/lib/x86_64-linux-gnu", "-L/lib/x86_64-linux-gnu", "-lstdc++", "-lm")
+            "linuxArm64" -> linkerOpts("-L/usr/lib/aarch64-linux-gnu", "-L/lib/aarch64-linux-gnu", "-lstdc++", "-lm")
+        }
+    }
 
     sourceSets {
         commonMain {
