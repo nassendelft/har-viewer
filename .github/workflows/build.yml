@@ -66,7 +66,7 @@ jobs:
         run: ./gradlew :app:linkReleaseExecutableLinuxArm64
 
       - name: Rename binary
-        run: mv app/build/bin/linuxArm64/releaseExecutable/app app/build/bin/linuxArm64/releaseExecutable/har-view
+        run: mv app/build/bin/linuxArm64/releaseExecutable/app.kexe app/build/bin/linuxArm64/releaseExecutable/har-view
 
       - uses: actions/upload-artifact@v4
         with:
