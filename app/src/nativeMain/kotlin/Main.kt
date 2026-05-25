@@ -2,6 +2,7 @@ import har.Cookie
 import har.Param
 import har.parseHar
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.*
 import nl.ncaj.*
 
 private fun methodColor(method: String): Color = when (method.uppercase()) {
@@ -115,6 +116,9 @@ fun main(args: Array<String>) {
     if (entries.isEmpty()) {
         println("No entries found in HAR file."); return
     }
+
+    var appRef: FtxUIApp? = null
+    val bgScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     val selectedEntry = IntState(0)
     val tabSelected = IntState(0)
@@ -277,7 +281,7 @@ fun main(args: Array<String>) {
         reqHeadersRowCount = allRows.size
         val reqH = Terminal.size().dimy - 6
         return hbox(
-            vbox(*allRows.drop(reqHeadersScrollY.value).toTypedArray()).flex(),
+            vbox(*allRows.drop(reqHeadersScrollY.value).take(reqH).toTypedArray()).flex(),
             vScrollBar(reqHeadersScrollY.value, allRows.size, reqH),
         ).flex()
     }
@@ -332,7 +336,7 @@ fun main(args: Array<String>) {
         respHeadersRowCount = allRows.size
         val respH = Terminal.size().dimy - 6
         return hbox(
-            vbox(*allRows.drop(respHeadersScrollY.value).toTypedArray()).flex(),
+            vbox(*allRows.drop(respHeadersScrollY.value).take(respH).toTypedArray()).flex(),
             vScrollBar(respHeadersScrollY.value, allRows.size, respH),
         ).flex()
     }
@@ -341,6 +345,8 @@ fun main(args: Array<String>) {
     val bodyScrollY = IntState(0)
     var bodyLastContent = ""
     var bodyHighlightedLines: List<List<StyledSpan>>? = null
+    var bodyPendingLines: List<List<StyledSpan>>? = null
+    var bodyTokenizingJob: Job? = null
     var bodyLineCount = 0
     var bodyMaxLineWidth = 0
 
@@ -353,16 +359,31 @@ fun main(args: Array<String>) {
             bodyScrollX.value = 0
             bodyScrollY.value = 0
             bodyHighlightedLines = null
+            bodyTokenizingJob?.cancel()
+            bodyTokenizingJob = null
+            bodyPendingLines = null
         }
         val mimeType = content.mimeType
         val bodyHighlighter = highlighterFor(mimeType)
-        if (bodyHighlighter != null && bodyHighlightedLines == null) bodyHighlightedLines = bodyHighlighter.tokenizeLines(bodyText)
+        bodyPendingLines?.let {
+            bodyHighlightedLines = it
+            bodyPendingLines = null
+            bodyTokenizingJob = null
+        }
+        if (bodyHighlighter != null && bodyHighlightedLines == null && bodyTokenizingJob == null) {
+            val highlighter = bodyHighlighter
+            val text = bodyText
+            bodyTokenizingJob = bgScope.launch {
+                bodyPendingLines = highlighter.tokenizeLines(text)
+                appRef?.requestAnimationFrame()
+            }
+        }
         val lines = bodyText.lines()
         bodyLineCount = lines.size
         bodyMaxLineWidth = lines.maxOfOrNull { it.length } ?: 0
-        val visibleLines = lines.drop(bodyScrollY.value)
         val panelWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2 - 1)
         val bodyH = maxOf(1, Terminal.size().dimy - 8)
+        val visibleLines = lines.drop(bodyScrollY.value).take(bodyH)
         val sizeInfo = buildString {
             append("  ${content.size}B")
             val comp = content.compression
@@ -381,8 +402,9 @@ fun main(args: Array<String>) {
             separatorEmpty(),
             hbox(
                 vbox(*visibleLines.mapIndexed { idx, line ->
-                    if (bodyHighlighter != null) {
-                        val spans = bodyHighlightedLines!!.getOrElse(bodyScrollY.value + idx) { emptyList() }
+                    val highlighted = bodyHighlightedLines
+                    if (bodyHighlighter != null && highlighted != null) {
+                        val spans = highlighted.getOrElse(bodyScrollY.value + idx) { emptyList() }
                         renderHighlightedLine(clipSpans(spans, bodyScrollX.value, panelWidth))
                     } else {
                         val displayed = when {
@@ -473,7 +495,7 @@ fun main(args: Array<String>) {
             ).bgcolor(beige),
             separatorEmpty(),
             hbox(
-                vbox(*allRows.drop(timingsScrollY.value).toTypedArray()).flex(),
+                vbox(*allRows.drop(timingsScrollY.value).take(timingsH).toTypedArray()).flex(),
                 vScrollBar(timingsScrollY.value, allRows.size, timingsH),
             ).flex(),
         ).flex()
@@ -625,9 +647,10 @@ fun main(args: Array<String>) {
         }
     }
 
-    val app = FtxUIApp.fullscreen()
+    val app = FtxUIApp.fullscreen().also { appRef = it }
     app.loop(mainContainer)
 
+    bgScope.cancel()
     app.destroy()
     selectedEntry.free()
     tabSelected.free()
