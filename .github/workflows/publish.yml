@@ -122,6 +122,8 @@ jobs:
   release:
     needs: [build-macos-arm64, build-linux-arm64, build-linux-x64]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
       macos_arm64_sha256: ${{ steps.checksums.outputs.macos_arm64_sha256 }}
