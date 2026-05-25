@@ -1,19 +1,26 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-
 plugins {
     kotlin("multiplatform")
 }
 
+val hostOs = System.getProperty("os.name")
+
 kotlin {
-    macosArm64()
-    linuxArm64()
+    val nativeTarget = when {
+        hostOs.startsWith("Mac") -> macosArm64()
+        hostOs.startsWith("Linux") -> linuxArm64()
+        else -> error("Unsupported host OS: $hostOs")
+    }
 
-    targets.forEach {
-        (it as? KotlinNativeTarget)?.apply {
-            binaries.executable()
+    nativeTarget.apply {
+        binaries.executable()
 
-            compilations.getByName("main") {
-                val ftxui_c by cinterops.creating
+        compilations.getByName("main") {
+            val ftxui_c by cinterops.creating {
+                includeDirs(project.file("../binding/ftxui_c"))
+                extraOpts(
+                    "-libraryPath", project.file("../binding/ftxui_c/build").absolutePath,
+                    "-libraryPath", project.file("../binding/ftxui_c/build/ftxui_build").absolutePath
+                )
             }
         }
     }
@@ -42,5 +49,8 @@ tasks.register<Exec>("buildFtxuiC") {
     dependsOn("configureFtxuiC")
 }
 
-tasks.getByName("cinteropFtxui_cMacosArm64").dependsOn("buildFtxuiC")
-tasks.getByName("cinteropFtxui_cLinuxArm64").dependsOn("buildFtxuiC")
+val cinteropTask = when {
+    hostOs.startsWith("Mac") -> "cinteropFtxui_cMacosArm64"
+    else -> "cinteropFtxui_cLinuxArm64"
+}
+tasks.getByName(cinteropTask).dependsOn("buildFtxuiC")

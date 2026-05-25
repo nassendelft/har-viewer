@@ -1,15 +1,16 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
 }
 
-kotlin {
-    macosArm64()
-    linuxArm64()
+val hostOs = System.getProperty("os.name")
 
-    targets.forEach { (it as? KotlinNativeTarget)?.binaries?.executable() }
+kotlin {
+    when {
+        hostOs.startsWith("Mac") -> macosArm64()
+        hostOs.startsWith("Linux") -> linuxArm64()
+        else -> error("Unsupported host OS: $hostOs")
+    }.binaries.executable()
 
     sourceSets {
         commonMain {

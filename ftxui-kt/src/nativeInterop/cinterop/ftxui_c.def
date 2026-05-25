@@ -1,5 +1,3 @@
 headers = ftxui_c_api.h
 package = ftxui_c
 staticLibraries = libftxui_c_binding.a libftxui-component.a libftxui-dom.a libftxui-screen.a
-libraryPaths = binding/ftxui_c/build binding/ftxui_c/build/ftxui_build
-compilerOpts = -Ibinding/ftxui_c
