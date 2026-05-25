@@ -71,7 +71,7 @@ jobs:
           path: app/build/bin/macosX64/releaseExecutable/har-view
 
   build-linux-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -106,7 +106,7 @@ jobs:
           path: app/build/bin/linuxArm64/releaseExecutable/har-view
 
   build-linux-x64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:

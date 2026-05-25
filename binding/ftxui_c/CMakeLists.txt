@@ -13,7 +13,7 @@ target_include_directories(ftxui_c_binding_shared PUBLIC .)
 set_target_properties(ftxui_c_binding_shared PROPERTIES OUTPUT_NAME "ftxui_c_binding")
 
 # Create the static library for the C binding
-add_library(ftxui_c_binding_static STATIC ftxui_c_wrapper.cpp)
+add_library(ftxui_c_binding_static STATIC ftxui_c_wrapper.cpp compat.c)
 target_link_libraries(ftxui_c_binding_static PRIVATE ftxui::ftxui)
 target_include_directories(ftxui_c_binding_static PUBLIC .)
 set_target_properties(ftxui_c_binding_static PROPERTIES OUTPUT_NAME "ftxui_c_binding")
