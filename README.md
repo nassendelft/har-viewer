@@ -1,0 +1,74 @@
+# har-viewer
+
+A terminal UI for inspecting [HAR](https://en.wikipedia.org/wiki/HAR_(file_format)) (HTTP Archive) files. Browse requests, inspect headers, view response bodies with JSON syntax highlighting, and analyze timing breakdowns — all from the command line.
+
+![demo](docs/demo.gif)
+
+## Installation
+
+### Homebrew (macOS and Linux)
+
+```sh
+brew tap nassendelft/har-viewer
+brew install har-viewer
+```
+
+### Download a release
+
+Pre-built binaries are available on the [releases page](https://github.com/nassendelft/har-viewer/releases) for:
+
+- macOS (Apple Silicon)
+- Linux ARM64
+- Linux x86-64
+
+## Usage
+
+```sh
+har-view <file.har>
+```
+
+## Navigation
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` or `j` / `k` | Move through the request list |
+| `Enter` | Focus the detail panel |
+| `r` | Focus the requests panel |
+| `d` | Focus the details panel |
+| `/` | Open the regex filter |
+| `Esc` / `Enter` | Close the filter |
+| `←` / `→` or `h` / `l` | Scroll URLs horizontally (requests panel) |
+| `1` | Switch to Request tab |
+| `2` | Switch to Resp Headers tab |
+| `3` | Switch to Body tab |
+| `4` | Switch to Diagnostics tab |
+| `↑` / `↓` or `j` / `k` | Scroll content (detail panel) |
+| `←` / `→` or `h` / `l` | Scroll body horizontally (Body tab) |
+| `Ctrl+C` | Quit |
+
+## Features
+
+- **Color-coded methods** — GET, POST, PUT, PATCH, DELETE and more are each a distinct color
+- **Regex filter** — press `/` to filter requests by URL using a regular expression
+- **Request tab** — overview, query parameters, request headers, cookies, and request body
+- **Resp Headers tab** — response status, headers, cookies, and redirect target
+- **Body tab** — response body with JSON syntax highlighting and horizontal scrolling
+- **Diagnostics tab** — visual timing bars for blocked, DNS, connect, SSL, send, wait, and receive phases, plus cache state
+
+## Building from source
+
+Requirements: JDK 17+, CMake, a C++ toolchain.
+
+```sh
+git clone --recurse-submodules https://github.com/nassendelft/har-viewer.git
+cd har-viewer
+./gradlew :app:linkReleaseExecutableMacosArm64   # macOS Apple Silicon
+./gradlew :app:linkReleaseExecutableLinuxX64      # Linux x86-64
+./gradlew :app:linkReleaseExecutableLinuxArm64 -Pnative.target=linuxArm64  # Linux ARM64
+```
+
+The binary is written to `app/build/bin/<target>/releaseExecutable/app.kexe`.
+
+## License
+
+[GPL-3.0](LICENSE)
