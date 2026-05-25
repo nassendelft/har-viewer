@@ -208,6 +208,9 @@ fun main(args: Array<String>) {
             .let { if (focusedPanel.value != 0) it.color(Color.GrayDark) else it }
     }
 
+    var lastKey = ""
+    var reqListLastKey = ""
+
     val reqHeadersScrollY = IntState(0)
     var reqHeadersLastEntry = -1
     var reqBodyHighlightedLines: List<List<StyledSpan>>? = null
@@ -527,6 +530,15 @@ fun main(args: Array<String>) {
                 val isSearchFocused = leftSubFocus.value == 1
                 val maxUrlLen = filtered.maxOfOrNull { (_, e) -> e.request.url.length } ?: 0
                 val maxHOffset = maxOf(0, maxUrlLen - maxOf(1, leftSize.value - 2))
+                val listPageSize = maxOf(1, Terminal.size().dimy - 6)
+                val halfListPage = maxOf(1, listPageSize / 2)
+                val prevReqKey = reqListLastKey
+                if (!event.isMouse && !isSearchFocused) reqListLastKey = event.input
+                fun moveBy(delta: Int) {
+                    if (filtered.isEmpty()) return
+                    val target = (currentPos + delta).coerceIn(0, filtered.size - 1)
+                    selectedEntry.value = filtered[target].first
+                }
                 when {
                     event.isMouse -> true
                     event.isKey("/") && !isSearchFocused -> { leftSubFocus.value = 1; true }
@@ -538,7 +550,7 @@ fun main(args: Array<String>) {
                     (event.isKey(Key.ArrowLeft) || event.isKey("h")) && !isSearchFocused -> {
                         hScrollOffset.value = maxOf(hScrollOffset.value - 5, 0); true
                     }
-                    event.isKey(Key.ArrowUp) -> {
+                    (event.isKey(Key.ArrowUp) || event.isKey("k")) && !isSearchFocused -> {
                         when {
                             filtered.isEmpty() -> { }
                             currentPos < 0 -> selectedEntry.value = filtered.last().first
@@ -546,13 +558,23 @@ fun main(args: Array<String>) {
                         }
                         true
                     }
-                    event.isKey(Key.ArrowDown) -> {
+                    (event.isKey(Key.ArrowDown) || event.isKey("j")) && !isSearchFocused -> {
                         when {
                             filtered.isEmpty() -> { }
                             currentPos < 0 -> selectedEntry.value = filtered.first().first
                             currentPos < filtered.size - 1 -> selectedEntry.value = filtered[currentPos + 1].first
                         }
                         true
+                    }
+                    event.isKey(Key.CtrlD) && !isSearchFocused -> { moveBy(halfListPage); true }
+                    event.isKey(Key.CtrlU) && !isSearchFocused -> { moveBy(-halfListPage); true }
+                    (event.isKey(Key.CtrlF) || event.isKey(Key.PageDown)) && !isSearchFocused -> { moveBy(listPageSize); true }
+                    (event.isKey(Key.CtrlB) || event.isKey(Key.PageUp)) && !isSearchFocused -> { moveBy(-listPageSize); true }
+                    event.isKey("G") && !isSearchFocused -> {
+                        if (filtered.isNotEmpty()) selectedEntry.value = filtered.last().first; true
+                    }
+                    event.isKey("g") && !isSearchFocused && prevReqKey == "g" -> {
+                        if (filtered.isNotEmpty()) selectedEntry.value = filtered.first().first; true
                     }
                     event.isKey(Key.Return) && !isSearchFocused -> { focusedPanel.value = 1; true }
                     else -> false
@@ -611,6 +633,9 @@ fun main(args: Array<String>) {
         val onRespHeaders = onDetails && tabSelected.value == 1
         val onTimings = onDetails && tabSelected.value == 3
         val contentHeight = Terminal.size().dimy - 6
+        val halfPage = maxOf(1, contentHeight / 2)
+        val prevKey = lastKey
+        if (!event.isMouse && !searchActive) lastKey = event.input
         when {
             event.isKey("r") && !searchActive -> { focusedPanel.value = 0; true }
             event.isKey("d") && !searchActive -> { focusedPanel.value = 1; true }
@@ -633,6 +658,26 @@ fun main(args: Array<String>) {
                 val maxScrollX = maxOf(0, bodyMaxLineWidth - panelW)
                 bodyScrollX.value = minOf(maxScrollX, bodyScrollX.value + 4); true
             }
+            event.isKey(Key.CtrlD) && onBody -> {
+                val maxScroll = maxOf(0, bodyLineCount - (contentHeight - 2))
+                bodyScrollY.value = minOf(maxScroll, bodyScrollY.value + halfPage); true
+            }
+            event.isKey(Key.CtrlU) && onBody -> {
+                bodyScrollY.value = maxOf(0, bodyScrollY.value - halfPage); true
+            }
+            (event.isKey(Key.CtrlF) || event.isKey(Key.PageDown)) && onBody -> {
+                val maxScroll = maxOf(0, bodyLineCount - (contentHeight - 2))
+                bodyScrollY.value = minOf(maxScroll, bodyScrollY.value + contentHeight); true
+            }
+            (event.isKey(Key.CtrlB) || event.isKey(Key.PageUp)) && onBody -> {
+                bodyScrollY.value = maxOf(0, bodyScrollY.value - contentHeight); true
+            }
+            event.isKey("G") && onBody -> {
+                bodyScrollY.value = maxOf(0, bodyLineCount - (contentHeight - 2)); true
+            }
+            event.isKey("g") && onBody && prevKey == "g" -> {
+                bodyScrollY.value = 0; true
+            }
             event.isKey("p") && onBody && bodyIsJson -> { bodyPrettify.value = !bodyPrettify.value; true }
             (event.isKey(Key.ArrowUp) || event.isKey("k")) && onReqHeaders -> {
                 reqHeadersScrollY.value = maxOf(0, reqHeadersScrollY.value - 1); true
@@ -641,6 +686,26 @@ fun main(args: Array<String>) {
                 val maxScroll = maxOf(0, reqHeadersRowCount - contentHeight)
                 reqHeadersScrollY.value = minOf(maxScroll, reqHeadersScrollY.value + 1); true
             }
+            event.isKey(Key.CtrlD) && onReqHeaders -> {
+                val maxScroll = maxOf(0, reqHeadersRowCount - contentHeight)
+                reqHeadersScrollY.value = minOf(maxScroll, reqHeadersScrollY.value + halfPage); true
+            }
+            event.isKey(Key.CtrlU) && onReqHeaders -> {
+                reqHeadersScrollY.value = maxOf(0, reqHeadersScrollY.value - halfPage); true
+            }
+            (event.isKey(Key.CtrlF) || event.isKey(Key.PageDown)) && onReqHeaders -> {
+                val maxScroll = maxOf(0, reqHeadersRowCount - contentHeight)
+                reqHeadersScrollY.value = minOf(maxScroll, reqHeadersScrollY.value + contentHeight); true
+            }
+            (event.isKey(Key.CtrlB) || event.isKey(Key.PageUp)) && onReqHeaders -> {
+                reqHeadersScrollY.value = maxOf(0, reqHeadersScrollY.value - contentHeight); true
+            }
+            event.isKey("G") && onReqHeaders -> {
+                reqHeadersScrollY.value = maxOf(0, reqHeadersRowCount - contentHeight); true
+            }
+            event.isKey("g") && onReqHeaders && prevKey == "g" -> {
+                reqHeadersScrollY.value = 0; true
+            }
             (event.isKey(Key.ArrowUp) || event.isKey("k")) && onRespHeaders -> {
                 respHeadersScrollY.value = maxOf(0, respHeadersScrollY.value - 1); true
             }
@@ -648,12 +713,52 @@ fun main(args: Array<String>) {
                 val maxScroll = maxOf(0, respHeadersRowCount - contentHeight)
                 respHeadersScrollY.value = minOf(maxScroll, respHeadersScrollY.value + 1); true
             }
+            event.isKey(Key.CtrlD) && onRespHeaders -> {
+                val maxScroll = maxOf(0, respHeadersRowCount - contentHeight)
+                respHeadersScrollY.value = minOf(maxScroll, respHeadersScrollY.value + halfPage); true
+            }
+            event.isKey(Key.CtrlU) && onRespHeaders -> {
+                respHeadersScrollY.value = maxOf(0, respHeadersScrollY.value - halfPage); true
+            }
+            (event.isKey(Key.CtrlF) || event.isKey(Key.PageDown)) && onRespHeaders -> {
+                val maxScroll = maxOf(0, respHeadersRowCount - contentHeight)
+                respHeadersScrollY.value = minOf(maxScroll, respHeadersScrollY.value + contentHeight); true
+            }
+            (event.isKey(Key.CtrlB) || event.isKey(Key.PageUp)) && onRespHeaders -> {
+                respHeadersScrollY.value = maxOf(0, respHeadersScrollY.value - contentHeight); true
+            }
+            event.isKey("G") && onRespHeaders -> {
+                respHeadersScrollY.value = maxOf(0, respHeadersRowCount - contentHeight); true
+            }
+            event.isKey("g") && onRespHeaders && prevKey == "g" -> {
+                respHeadersScrollY.value = 0; true
+            }
             (event.isKey(Key.ArrowUp) || event.isKey("k")) && onTimings -> {
                 timingsScrollY.value = maxOf(0, timingsScrollY.value - 1); true
             }
             (event.isKey(Key.ArrowDown) || event.isKey("j")) && onTimings -> {
                 val maxScroll = maxOf(0, timingsRowCount - (contentHeight - 2))
                 timingsScrollY.value = minOf(maxScroll, timingsScrollY.value + 1); true
+            }
+            event.isKey(Key.CtrlD) && onTimings -> {
+                val maxScroll = maxOf(0, timingsRowCount - (contentHeight - 2))
+                timingsScrollY.value = minOf(maxScroll, timingsScrollY.value + halfPage); true
+            }
+            event.isKey(Key.CtrlU) && onTimings -> {
+                timingsScrollY.value = maxOf(0, timingsScrollY.value - halfPage); true
+            }
+            (event.isKey(Key.CtrlF) || event.isKey(Key.PageDown)) && onTimings -> {
+                val maxScroll = maxOf(0, timingsRowCount - (contentHeight - 2))
+                timingsScrollY.value = minOf(maxScroll, timingsScrollY.value + contentHeight); true
+            }
+            (event.isKey(Key.CtrlB) || event.isKey(Key.PageUp)) && onTimings -> {
+                timingsScrollY.value = maxOf(0, timingsScrollY.value - contentHeight); true
+            }
+            event.isKey("G") && onTimings -> {
+                timingsScrollY.value = maxOf(0, timingsRowCount - (contentHeight - 2)); true
+            }
+            event.isKey("g") && onTimings && prevKey == "g" -> {
+                timingsScrollY.value = 0; true
             }
             else -> false
         }
