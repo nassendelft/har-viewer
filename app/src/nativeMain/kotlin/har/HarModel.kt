@@ -345,9 +345,9 @@ data class Param(
  */
 @Serializable
 data class Content(
-    val size: Long,
+    val size: Long = -1,
     val compression: Long? = null,
-    val mimeType: String,
+    val mimeType: String = "",
     val text: String? = null,
     val encoding: String? = null,
     val comment: String? = null,
@@ -383,9 +383,9 @@ data class Cache(
 @Serializable
 data class CacheState(
     val expires: String? = null,
-    val lastAccess: String,
-    val eTag: String,
-    val hitCount: Int,
+    val lastAccess: String = "",
+    val eTag: String = "",
+    val hitCount: Int = 0,
     val comment: String? = null,
 )
 
@@ -414,9 +414,9 @@ data class Timings(
     val blocked: Double? = null,
     val dns: Double? = null,
     val connect: Double? = null,
-    val send: Double,
-    val wait: Double,
-    val receive: Double,
+    val send: Double = -1.0,
+    val wait: Double = -1.0,
+    val receive: Double = -1.0,
     val ssl: Double? = null,
     val comment: String? = null,
 )
