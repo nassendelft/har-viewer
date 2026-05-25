@@ -120,6 +120,9 @@ jobs:
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake build-essential libstdc++-11-dev
 
+      - name: Verify libstdc++ static library
+        run: ls /usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a
+
       - uses: actions/cache@v4
         with:
           path: |

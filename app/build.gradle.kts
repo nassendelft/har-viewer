@@ -23,8 +23,8 @@ kotlin {
         else -> error("Unsupported target: $nativeTargetName")
     }.binaries.executable {
         when (nativeTargetName) {
-            "linuxX64" -> linkerOpts("/usr/lib/x86_64-linux-gnu/libstdc++.a", "-lm")
-            "linuxArm64" -> linkerOpts("/usr/aarch64-linux-gnu/lib/libstdc++.a", "-lm")
+            "linuxX64" -> linkerOpts("/usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a", "-lm")
+            "linuxArm64" -> linkerOpts("/usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a", "-lm")
         }
     }
 
