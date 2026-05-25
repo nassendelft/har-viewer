@@ -69,9 +69,9 @@ object MarkupHighlighter : Highlighter {
                 }
                 State.ATTR_GAP -> {
                     when {
-                        c == '>' -> { emit(">", Color.White); i++; state = State.TEXT }
+                        c == '>' -> { flush(Color.Default); emit(">", Color.White); i++; state = State.TEXT }
                         c == '/' && i + 1 < n && src[i + 1] == '>' -> {
-                            emit("/>", Color.White); i += 2; state = State.TEXT
+                            flush(Color.Default); emit("/>", Color.White); i += 2; state = State.TEXT
                         }
                         c.isWhitespace() -> { buf.append(c); i++ }
                         else -> { flush(Color.Default); state = State.ATTR_NAME }

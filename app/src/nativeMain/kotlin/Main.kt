@@ -215,7 +215,7 @@ fun main(args: Array<String>) {
         val entry = entries[idx]
         val req = entry.request
         val postData = req.postData
-        val bodyLines = postData?.text?.lines() ?: emptyList()
+        val bodyLines = postData?.text?.replace("\t", "    ")?.lines() ?: emptyList()
         val panelWidth = Terminal.size().dimx - leftSize.value
         val allRows = buildList {
             add(hbox(text(" Overview").bold().color(black), filler()).bgcolor(beige))
@@ -266,7 +266,7 @@ fun main(args: Array<String>) {
                 } else if (bodyLines.isEmpty()) {
                     add(text("(empty)").dim())
                 } else if (reqHighlighter != null) {
-                    if (reqBodyHighlightedLines == null) reqBodyHighlightedLines = reqHighlighter.tokenizeLines(postData.text ?: "")
+                    if (reqBodyHighlightedLines == null) reqBodyHighlightedLines = reqHighlighter.tokenizeLines(postData.text?.replace("\t", "    ") ?: "")
                     val reqBodyWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2)
                     reqBodyHighlightedLines!!.forEach { spans -> add(renderHighlightedLine(clipSpans(spans, 0, reqBodyWidth))) }
                 } else {
@@ -347,7 +347,7 @@ fun main(args: Array<String>) {
     fun bodyTabContent(): Element {
         val entry = entries[selectedEntry.value]
         val content = entry.response.content
-        val bodyText = content.text ?: "(no body)"
+        val bodyText = (content.text ?: "(no body)").replace("\t", "    ")
         if (bodyText != bodyLastContent) {
             bodyLastContent = bodyText
             bodyScrollX.value = 0
