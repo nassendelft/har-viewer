@@ -19,6 +19,6 @@ target_include_directories(ftxui_c_binding_static PUBLIC .)
 set_target_properties(ftxui_c_binding_static PROPERTIES OUTPUT_NAME "ftxui_c_binding")
 
 # Add a test executable
-add_executable(test_c build/binding/ftxui_c/test_c.c)
+add_executable(test_c test_c.c)
 target_link_libraries(test_c PRIVATE ftxui_c_binding_shared)
 target_include_directories(test_c PRIVATE .)
