@@ -40,8 +40,42 @@ jobs:
           name: har-viewer-macos-arm64
           path: har-viewer-macos-arm64.tar.gz
 
+  build-macos-x64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: gradle-macos-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-macos-
+
+      - name: Build
+        run: ./gradlew :app:linkReleaseExecutableMacosX64
+
+      - name: Package
+        run: |
+          cp app/build/bin/macosX64/releaseExecutable/app.kexe har-view
+          tar -czf har-viewer-macos-x64.tar.gz har-view
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: har-viewer-macos-x64
+          path: har-viewer-macos-x64.tar.gz
+
   build-linux-arm64:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,13 +111,52 @@ jobs:
           name: har-viewer-linux-arm64
           path: har-viewer-linux-arm64.tar.gz
 
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: gradle-linux-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-linux-
+
+      - name: Build
+        run: ./gradlew :app:linkReleaseExecutableLinuxX64
+
+      - name: Package
+        run: |
+          cp app/build/bin/linuxX64/releaseExecutable/app.kexe har-view
+          tar -czf har-viewer-linux-x64.tar.gz har-view
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: har-viewer-linux-x64
+          path: har-viewer-linux-x64.tar.gz
+
   release:
-    needs: [build-macos-arm64, build-linux-arm64]
+    needs: [build-macos-arm64, build-macos-x64, build-linux-arm64, build-linux-x64]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       macos_arm64_sha256: ${{ steps.checksums.outputs.macos_arm64_sha256 }}
+      macos_x64_sha256: ${{ steps.checksums.outputs.macos_x64_sha256 }}
       linux_arm64_sha256: ${{ steps.checksums.outputs.linux_arm64_sha256 }}
+      linux_x64_sha256: ${{ steps.checksums.outputs.linux_x64_sha256 }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -94,7 +167,9 @@ jobs:
         id: checksums
         run: |
           echo "macos_arm64_sha256=$(sha256sum har-viewer-macos-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "macos_x64_sha256=$(sha256sum har-viewer-macos-x64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
           echo "linux_arm64_sha256=$(sha256sum har-viewer-linux-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "linux_x64_sha256=$(sha256sum har-viewer-linux-x64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
 
       - name: Get version
         id: version
@@ -108,7 +183,9 @@ jobs:
             --repo ${{ github.repository }} \
             --generate-notes \
             har-viewer-macos-arm64.tar.gz \
-            har-viewer-linux-arm64.tar.gz
+            har-viewer-macos-x64.tar.gz \
+            har-viewer-linux-arm64.tar.gz \
+            har-viewer-linux-x64.tar.gz
 
   update-homebrew:
     needs: release
@@ -123,7 +200,9 @@ jobs:
         env:
           VERSION: ${{ needs.release.outputs.version }}
           MACOS_ARM64_SHA256: ${{ needs.release.outputs.macos_arm64_sha256 }}
+          MACOS_X64_SHA256: ${{ needs.release.outputs.macos_x64_sha256 }}
           LINUX_ARM64_SHA256: ${{ needs.release.outputs.linux_arm64_sha256 }}
+          LINUX_X64_SHA256: ${{ needs.release.outputs.linux_x64_sha256 }}
         run: |
           cat > Formula/har-viewer.rb << EOF
           class HarViewer < Formula
@@ -136,6 +215,9 @@ jobs:
               if Hardware::CPU.arm?
                 url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-macos-arm64.tar.gz"
                 sha256 "${MACOS_ARM64_SHA256}"
+              else
+                url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-macos-x64.tar.gz"
+                sha256 "${MACOS_X64_SHA256}"
               end
             end
 
@@ -143,6 +225,9 @@ jobs:
               if Hardware::CPU.arm?
                 url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-linux-arm64.tar.gz"
                 sha256 "${LINUX_ARM64_SHA256}"
+              else
+                url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-linux-x64.tar.gz"
+                sha256 "${LINUX_X64_SHA256}"
               end
             end
 

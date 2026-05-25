@@ -3,12 +3,15 @@ plugins {
 }
 
 val hostOs = System.getProperty("os.name")
+val hostArch = System.getProperty("os.arch")
 
 kotlin {
     val nativeTarget = when {
-        hostOs.startsWith("Mac") -> macosArm64()
-        hostOs.startsWith("Linux") -> linuxArm64()
-        else -> error("Unsupported host OS: $hostOs")
+        hostOs.startsWith("Mac") && hostArch == "aarch64" -> macosArm64()
+        hostOs.startsWith("Mac") -> macosX64()
+        hostOs.startsWith("Linux") && hostArch == "aarch64" -> linuxArm64()
+        hostOs.startsWith("Linux") -> linuxX64()
+        else -> error("Unsupported host OS: $hostOs ($hostArch)")
     }
 
     nativeTarget.apply {
@@ -50,7 +53,9 @@ tasks.register<Exec>("buildFtxuiC") {
 }
 
 val cinteropTask = when {
-    hostOs.startsWith("Mac") -> "cinteropFtxui_cMacosArm64"
-    else -> "cinteropFtxui_cLinuxArm64"
+    hostOs.startsWith("Mac") && hostArch == "aarch64" -> "cinteropFtxui_cMacosArm64"
+    hostOs.startsWith("Mac") -> "cinteropFtxui_cMacosX64"
+    hostOs.startsWith("Linux") && hostArch == "aarch64" -> "cinteropFtxui_cLinuxArm64"
+    else -> "cinteropFtxui_cLinuxX64"
 }
 tasks.getByName(cinteropTask).dependsOn("buildFtxuiC")
