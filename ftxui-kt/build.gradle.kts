@@ -5,13 +5,22 @@ plugins {
 val hostOs = System.getProperty("os.name")
 val hostArch = System.getProperty("os.arch")
 
-kotlin {
-    val nativeTarget = when {
-        hostOs.startsWith("Mac") && hostArch == "aarch64" -> macosArm64()
-        hostOs.startsWith("Mac") -> macosX64()
-        hostOs.startsWith("Linux") && hostArch == "aarch64" -> linuxArm64()
-        hostOs.startsWith("Linux") -> linuxX64()
+val nativeTargetName = (findProperty("native.target") as String?)
+    ?: when {
+        hostOs.startsWith("Mac") && hostArch == "aarch64" -> "macosArm64"
+        hostOs.startsWith("Mac") -> "macosX64"
+        hostOs.startsWith("Linux") && hostArch == "aarch64" -> "linuxArm64"
+        hostOs.startsWith("Linux") -> "linuxX64"
         else -> error("Unsupported host OS: $hostOs ($hostArch)")
+    }
+
+kotlin {
+    val nativeTarget = when (nativeTargetName) {
+        "macosArm64" -> macosArm64()
+        "macosX64" -> macosX64()
+        "linuxArm64" -> linuxArm64()
+        "linuxX64" -> linuxX64()
+        else -> error("Unsupported target: $nativeTargetName")
     }
 
     nativeTarget.apply {
@@ -37,7 +46,15 @@ tasks.register<Exec>("configureFtxuiC") {
     outputs.file(cmakeBuildDir.resolve("CMakeCache.txt"))
     workingDir = cmakeBuildDir
     environment = System.getenv().toMutableMap() as Map<String, Any>
-    commandLine("bash", "-c", "cmake ..")
+    val cmakeArgs = buildList {
+        add("cmake")
+        add("..")
+        if (nativeTargetName == "linuxArm64" && hostArch != "aarch64") {
+            add("-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc")
+            add("-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++")
+        }
+    }
+    commandLine(cmakeArgs)
     doFirst {
         cmakeBuildDir.mkdirs()
     }
@@ -52,10 +69,5 @@ tasks.register<Exec>("buildFtxuiC") {
     dependsOn("configureFtxuiC")
 }
 
-val cinteropTask = when {
-    hostOs.startsWith("Mac") && hostArch == "aarch64" -> "cinteropFtxui_cMacosArm64"
-    hostOs.startsWith("Mac") -> "cinteropFtxui_cMacosX64"
-    hostOs.startsWith("Linux") && hostArch == "aarch64" -> "cinteropFtxui_cLinuxArm64"
-    else -> "cinteropFtxui_cLinuxX64"
-}
+val cinteropTask = "cinteropFtxui_c${nativeTargetName.replaceFirstChar { it.uppercase() }}"
 tasks.getByName(cinteropTask).dependsOn("buildFtxuiC")

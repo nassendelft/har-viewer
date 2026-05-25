@@ -87,7 +87,7 @@ jobs:
           java-version: 17
 
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - uses: actions/cache@v4
         with:
@@ -99,7 +99,7 @@ jobs:
           restore-keys: gradle-linux-
 
       - name: Build
-        run: ./gradlew :app:linkReleaseExecutableLinuxArm64
+        run: ./gradlew :app:linkReleaseExecutableLinuxArm64 -Pnative.target=linuxArm64
 
       - name: Package
         run: |
