@@ -1,3 +1,4 @@
+import kotlinx.serialization.json.*
 import nl.ncaj.*
 
 private enum class JsonTokenType { KEY, STRING, NUMBER, BOOLEAN, NULL, PUNCTUATION, WHITESPACE }
@@ -12,10 +13,19 @@ private fun colorFor(type: JsonTokenType): Color = when (type) {
     JsonTokenType.WHITESPACE  -> Color.Default
 }
 
+private val prettyJson = Json { prettyPrint = true }
+
 object JsonHighlighter : Highlighter {
     override fun accepts(mimeType: String) = mimeType.contains("json", ignoreCase = true)
 
     override fun tokenizeLines(text: String) = spansToLines(tokenize(text))
+
+    fun prettyPrint(text: String): String = try {
+        val element = Json.parseToJsonElement(text)
+        prettyJson.encodeToString(JsonElement.serializer(), element)
+    } catch (_: Exception) {
+        text
+    }
 
     private fun tokenize(json: String): List<StyledSpan> {
         val result = mutableListOf<StyledSpan>()

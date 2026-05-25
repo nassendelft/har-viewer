@@ -343,7 +343,10 @@ fun main(args: Array<String>) {
 
     val bodyScrollX = IntState(0)
     val bodyScrollY = IntState(0)
+    val bodyPrettify = BoolState(false)
     var bodyLastContent = ""
+    var bodyLastPrettify = false
+    var bodyIsJson = false
     var bodyHighlightedLines: List<List<StyledSpan>>? = null
     var bodyPendingLines: List<List<StyledSpan>>? = null
     var bodyTokenizingJob: Job? = null
@@ -354,8 +357,13 @@ fun main(args: Array<String>) {
         val entry = entries[selectedEntry.value]
         val content = entry.response.content
         val bodyText = (content.text ?: "(no body)").replace("\t", "    ")
-        if (bodyText != bodyLastContent) {
+        val mimeType = content.mimeType
+        val isJson = JsonHighlighter.accepts(mimeType)
+        bodyIsJson = isJson
+        if (bodyText != bodyLastContent) bodyPrettify.value = false
+        if (bodyText != bodyLastContent || bodyPrettify.value != bodyLastPrettify) {
             bodyLastContent = bodyText
+            bodyLastPrettify = bodyPrettify.value
             bodyScrollX.value = 0
             bodyScrollY.value = 0
             bodyHighlightedLines = null
@@ -363,7 +371,7 @@ fun main(args: Array<String>) {
             bodyTokenizingJob = null
             bodyPendingLines = null
         }
-        val mimeType = content.mimeType
+        val displayText = if (bodyPrettify.value && isJson) JsonHighlighter.prettyPrint(bodyText) else bodyText
         val bodyHighlighter = highlighterFor(mimeType)
         bodyPendingLines?.let {
             bodyHighlightedLines = it
@@ -372,13 +380,13 @@ fun main(args: Array<String>) {
         }
         if (bodyHighlighter != null && bodyHighlightedLines == null && bodyTokenizingJob == null) {
             val highlighter = bodyHighlighter
-            val text = bodyText
+            val text = displayText
             bodyTokenizingJob = bgScope.launch {
                 bodyPendingLines = highlighter.tokenizeLines(text)
                 appRef?.requestAnimationFrame()
             }
         }
-        val lines = bodyText.lines()
+        val lines = displayText.lines()
         bodyLineCount = lines.size
         bodyMaxLineWidth = lines.maxOfOrNull { it.length } ?: 0
         val panelWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2 - 1)
@@ -397,6 +405,9 @@ fun main(args: Array<String>) {
                 if (mimeType.isNotEmpty()) hbox(text("  "),text(mimeType).color(black).underlined()) else text(""),
                 text(sizeInfo).color(black),
                 text("  ${lines.size} lines").color(black),
+                if (isJson) text("  [p] pretty").let {
+                    if (bodyPrettify.value) it.color(yellow) else it.color(black).dim()
+                } else text(""),
                 filler(),
             ).bgcolor(beige),
             separatorEmpty(),
@@ -622,6 +633,7 @@ fun main(args: Array<String>) {
                 val maxScrollX = maxOf(0, bodyMaxLineWidth - panelW)
                 bodyScrollX.value = minOf(maxScrollX, bodyScrollX.value + 4); true
             }
+            event.isKey("p") && onBody && bodyIsJson -> { bodyPrettify.value = !bodyPrettify.value; true }
             (event.isKey(Key.ArrowUp) || event.isKey("k")) && onReqHeaders -> {
                 reqHeadersScrollY.value = maxOf(0, reqHeadersScrollY.value - 1); true
             }
@@ -659,6 +671,7 @@ fun main(args: Array<String>) {
     focusedPanel.free()
     bodyScrollX.free()
     bodyScrollY.free()
+    bodyPrettify.free()
     reqHeadersScrollY.free()
     respHeadersScrollY.free()
     timingsScrollY.free()
