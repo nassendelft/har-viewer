@@ -17,7 +17,6 @@ val nativeTargetName = (findProperty("native.target") as String?)
 kotlin {
     val nativeTarget = when (nativeTargetName) {
         "macosArm64" -> macosArm64()
-        "macosX64" -> macosX64()
         "linuxArm64" -> linuxArm64()
         "linuxX64" -> linuxX64()
         else -> error("Unsupported target: $nativeTargetName")
