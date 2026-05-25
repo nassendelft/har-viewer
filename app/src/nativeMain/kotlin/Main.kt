@@ -1,5 +1,4 @@
 import har.Cookie
-import har.Header
 import har.Param
 import har.parseHar
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -19,54 +18,41 @@ private val beige = Color.rgb(0xEBu, 0xE2u, 0xC3u)
 private val yellow = Color.rgb(0xFFu, 0xB7u, 0x00u)
 private val black = Color.rgb(0u, 0u, 0u)
 
-private fun headerRows(headers: List<Header>, panelWidth: Int): List<Element> {
-    if (headers.isEmpty()) return listOf(text("(none)").dim())
-    val nameWidth = headers.maxOf { it.name.length }
-    val chunkSize = maxOf(20, panelWidth - 1 - 2 - nameWidth - 3 - 1)
+private fun cookieAnnotation(c: Cookie): String? = listOfNotNull(
+    c.path?.let { "path=$it" },
+    c.domain?.let { "domain=$it" },
+    c.expires?.let { "expires=$it" },
+    if (c.httpOnly == true) "HttpOnly" else null,
+    if (c.secure == true) "Secure" else null,
+).joinToString("  ").ifEmpty { null }
+
+private fun paramAnnotation(p: Param): String? = listOfNotNull(
+    p.fileName?.let { "file=$it" },
+    p.contentType?.let { "type=$it" },
+).joinToString("  ").ifEmpty { null }
+
+private fun keyValueRows(
+    pairs: List<Pair<String, String>>,
+    panelWidth: Int = 0,
+    annotations: List<String?> = emptyList(),
+): List<Element> {
+    if (pairs.isEmpty()) return listOf(text("(none)").dim())
+    val nameWidth = pairs.maxOf { it.first.length }
     val rows = mutableListOf<Element>()
-    for ((i, header) in headers.withIndex()) {
-        val chunks = header.value.chunked(chunkSize)
-        chunks.forEachIndexed { j, chunk ->
-            val nameCell = if (j == 0) text(header.name.padEnd(nameWidth)).bold().color(Color.CyanLight)
-            else text(" ".repeat(nameWidth))
-            rows.add(hbox(nameCell, text(" │ ").dim(), text(chunk).color(beige)))
+    for ((i, pair) in pairs.withIndex()) {
+        val (name, value) = pair
+        if (panelWidth > 0) {
+            val chunkSize = maxOf(20, panelWidth - 1 - 2 - nameWidth - 3 - 1)
+            value.chunked(chunkSize).forEachIndexed { j, chunk ->
+                val nameCell = if (j == 0) text(name.padEnd(nameWidth)).bold().color(Color.CyanLight)
+                               else text(" ".repeat(nameWidth))
+                rows.add(hbox(nameCell, text(" │ ").dim(), text(chunk).color(beige)))
+            }
+        } else {
+            rows.add(hbox(text(name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(value).color(beige)))
         }
-        if (i < headers.lastIndex) rows.add(separator())
-    }
-    return rows
-}
-
-private fun cookieRows(cookies: List<Cookie>): List<Element> {
-    if (cookies.isEmpty()) return listOf(text("(none)").dim())
-    val nameWidth = cookies.maxOf { it.name.length }
-    val rows = mutableListOf<Element>()
-    for ((i, cookie) in cookies.withIndex()) {
-        rows.add(hbox(text(cookie.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(cookie.value).color(beige)))
-        val meta = listOfNotNull(
-            cookie.path?.let { "path=$it" },
-            cookie.domain?.let { "domain=$it" },
-            cookie.expires?.let { "expires=$it" },
-            if (cookie.httpOnly == true) "HttpOnly" else null,
-            if (cookie.secure == true) "Secure" else null,
-        )
-        if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
-        if (i < cookies.lastIndex) rows.add(separator())
-    }
-    return rows
-}
-
-private fun paramRows(params: List<Param>): List<Element> {
-    if (params.isEmpty()) return emptyList()
-    val nameWidth = params.maxOf { it.name.length }
-    val rows = mutableListOf<Element>()
-    for ((i, param) in params.withIndex()) {
-        rows.add(hbox(text(param.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(param.value ?: "").color(beige)))
-        val meta = listOfNotNull(
-            param.fileName?.let { "file=$it" },
-            param.contentType?.let { "type=$it" },
-        )
-        if (meta.isNotEmpty()) rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(meta.joinToString("  ")).dim()))
-        if (i < params.lastIndex) rows.add(separator())
+        annotations.getOrNull(i)?.let { rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(it).dim())) }
+        if (i < pairs.lastIndex) rows.add(separator())
     }
     return rows
 }
@@ -133,32 +119,12 @@ fun main(args: Array<String>) {
     val selectedEntry = IntState(0)
     val tabSelected = IntState(0)
     val leftSize = IntState(50)
-    val hScrollOffset = IntState(0)
     val focusedPanel = IntState(0)
-    val bodyScrollX = IntState(0)
-    val bodyScrollY = IntState(0)
-    val reqHeadersScrollY = IntState(0)
-    val respHeadersScrollY = IntState(0)
-    val timingsScrollY = IntState(0)
-    val searchQuery = StringState("")
+
+    val hScrollOffset = IntState(0)
     val leftSubFocus = IntState(0)
-
-    var bodyLastContent = ""
-    var bodyHighlightedLines: List<List<StyledSpan>>? = null
-    var reqBodyHighlightedLines: List<List<StyledSpan>>? = null
-    var reqHeadersLastEntry = -1
-    var respHeadersLastEntry = -1
-    var timingsLastEntry = -1
+    val searchQuery = StringState("")
     var lastSearchPattern = ""
-    var reqHeadersRowCount = 0
-    var respHeadersRowCount = 0
-    var timingsRowCount = 0
-    var bodyLineCount = 0
-    var bodyMaxLineWidth = 0
-
-    val maxMethodLen = entries.maxOf { it.request.method.length }
-    val tabLabels = listOf("Request", "Resp Headers", "Body", "Diagnostics")
-
     val searchInput = input(searchQuery, "filter (regex)…")
 
     fun getFilteredEntries() = run {
@@ -174,6 +140,7 @@ fun main(args: Array<String>) {
 
     fun buildRequestListContent(subElem: Element): Element {
         subElem.destroy()
+        val maxMethodLen = entries.maxOf { it.request.method.length }
         val isFocused = focusedPanel.value == 0
         val isSearchFocused = leftSubFocus.value == 1
         val filtered = getFilteredEntries()
@@ -237,6 +204,11 @@ fun main(args: Array<String>) {
             .let { if (focusedPanel.value != 0) it.color(Color.GrayDark) else it }
     }
 
+    val reqHeadersScrollY = IntState(0)
+    var reqHeadersLastEntry = -1
+    var reqBodyHighlightedLines: List<List<StyledSpan>>? = null
+    var reqHeadersRowCount = 0
+
     fun requestTabContent(): Element {
         val idx = selectedEntry.value
         if (idx != reqHeadersLastEntry) { reqHeadersLastEntry = idx; reqHeadersScrollY.value = 0; reqBodyHighlightedLines = null }
@@ -248,23 +220,18 @@ fun main(args: Array<String>) {
         val allRows = buildList {
             add(hbox(text(" Overview").bold().color(black), filler()).bgcolor(beige))
             add(separatorEmpty())
-            val overviewRows = buildList {
-                add(hbox(text("Started    ").color(Color.CyanLight),text(" │ ").dim(), text(entry.startedDateTime)))
-                add(hbox(text("HTTP       ").color(Color.CyanLight),text(" │ ").dim(), text(req.httpVersion)))
-                entry.serverIPAddress?.let { add(hbox(text("Server IP  ").color(Color.CyanLight),text(" │ ").dim(), text(it))) }
-                entry.connection?.let { add(hbox(text("Connection ").color(Color.CyanLight),text(" │ ").dim(), text(it))) }
-                entry.pageref?.let { add(hbox(text("Page       ").color(Color.CyanLight),text(" │ ").dim(), text(it))) }
-            }
-            overviewRows.forEachIndexed { i, row -> add(row); if (i < overviewRows.lastIndex) add(separator()) }
+            addAll(keyValueRows(buildList {
+                add("Started" to entry.startedDateTime)
+                add("HTTP" to req.httpVersion)
+                entry.serverIPAddress?.let { add("Server IP" to it) }
+                entry.connection?.let { add("Connection" to it) }
+                entry.pageref?.let { add("Page" to it) }
+            }))
             if (req.queryString.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Query Parameters").bold().color(black), text("  ${req.queryString.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
-                val nameWidth = req.queryString.maxOf { it.name.length }
-                req.queryString.forEachIndexed { i, p ->
-                    add(hbox(text(p.name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(p.value).color(beige)))
-                    if (i < req.queryString.lastIndex) add(separator())
-                }
+                addAll(keyValueRows(req.queryString.map { it.name to it.value }))
             }
             add(separatorEmpty())
             val reqSizeInfo = buildString {
@@ -278,12 +245,12 @@ fun main(args: Array<String>) {
                 filler(),
             ).bgcolor(beige))
             add(separatorEmpty())
-            addAll(headerRows(req.headers, panelWidth))
+            addAll(keyValueRows(req.headers.map { it.name to it.value }, panelWidth))
             if (req.cookies.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Request Cookies").bold().color(black), text("  ${req.cookies.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
-                addAll(cookieRows(req.cookies))
+                addAll(keyValueRows(req.cookies.map { it.name to it.value }, annotations = req.cookies.map { cookieAnnotation(it) }))
             }
             if (postData != null) {
                 add(separatorEmpty())
@@ -294,7 +261,7 @@ fun main(args: Array<String>) {
                 ).bgcolor(beige))
                 add(separatorEmpty())
                 if (postData.params.isNotEmpty()) {
-                    addAll(paramRows(postData.params))
+                    addAll(keyValueRows(postData.params.map { it.name to (it.value ?: "") }, annotations = postData.params.map { paramAnnotation(it) }))
                 } else if (bodyLines.isEmpty()) {
                     add(text("(empty)").dim())
                 } else if (isJson(postData.mimeType)) {
@@ -313,6 +280,10 @@ fun main(args: Array<String>) {
             vScrollBar(reqHeadersScrollY.value, allRows.size, reqH),
         ).flex()
     }
+
+    val respHeadersScrollY = IntState(0)
+    var respHeadersLastEntry = -1
+    var respHeadersRowCount = 0
 
     fun responseHeadersTabContent(): Element {
         val idx = selectedEntry.value
@@ -343,7 +314,7 @@ fun main(args: Array<String>) {
                 filler(),
             ).bgcolor(beige))
             add(separatorEmpty())
-            addAll(headerRows(resp.headers, panelWidth))
+            addAll(keyValueRows(resp.headers.map { it.name to it.value }, panelWidth))
             if (resp.redirectURL.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Redirect").bold().color(black), filler()).bgcolor(beige))
@@ -354,7 +325,7 @@ fun main(args: Array<String>) {
                 add(separatorEmpty())
                 add(hbox(text(" Response Cookies").bold().color(black), text("  ${resp.cookies.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
-                addAll(cookieRows(resp.cookies))
+                addAll(keyValueRows(resp.cookies.map { it.name to it.value }, annotations = resp.cookies.map { cookieAnnotation(it) }))
             }
         }
         respHeadersRowCount = allRows.size
@@ -364,6 +335,13 @@ fun main(args: Array<String>) {
             vScrollBar(respHeadersScrollY.value, allRows.size, respH),
         ).flex()
     }
+
+    val bodyScrollX = IntState(0)
+    val bodyScrollY = IntState(0)
+    var bodyLastContent = ""
+    var bodyHighlightedLines: List<List<StyledSpan>>? = null
+    var bodyLineCount = 0
+    var bodyMaxLineWidth = 0
 
     fun bodyTabContent(): Element {
         val entry = entries[selectedEntry.value]
@@ -420,6 +398,10 @@ fun main(args: Array<String>) {
         ).flex()
     }
 
+    val timingsScrollY = IntState(0)
+    var timingsLastEntry = -1
+    var timingsRowCount = 0
+
     fun timingsTabContent(): Element {
         val idx = selectedEntry.value
         if (idx != timingsLastEntry) { timingsLastEntry = idx; timingsScrollY.value = 0 }
@@ -443,10 +425,12 @@ fun main(args: Array<String>) {
 
         fun cacheStateRows(label: String, cs: har.CacheState): List<Element> = buildList {
             add(hbox(text("  $label").bold().color(Color.CyanLight)))
-            add(hbox(text("    Last Access  ").dim(), text(cs.lastAccess)))
-            add(hbox(text("    ETag         ").dim(), text(cs.eTag)))
-            add(hbox(text("    Hit Count    ").dim(), text("${cs.hitCount}")))
-            cs.expires?.let { add(hbox(text("    Expires      ").dim(), text(it))) }
+            addAll(keyValueRows(buildList {
+                add("Last Access" to cs.lastAccess)
+                add("ETag" to cs.eTag)
+                add("Hit Count" to "${cs.hitCount}")
+                cs.expires?.let { add("Expires" to it) }
+            }))
         }
 
         val allRows = buildList {
@@ -463,8 +447,10 @@ fun main(args: Array<String>) {
                 add(separatorEmpty())
                 add(hbox(text(" Connection").bold().color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
-                entry.serverIPAddress?.let { add(hbox(text("  Server IP  ").color(Color.CyanLight), text(it))) }
-                entry.connection?.let { add(hbox(text("  TCP conn   ").color(Color.CyanLight), text(it))) }
+                addAll(keyValueRows(buildList {
+                    entry.serverIPAddress?.let { add("Server IP" to it) }
+                    entry.connection?.let { add("TCP conn" to it) }
+                }))
             }
             val cache = entry.cache
             if (cache.beforeRequest != null || cache.afterRequest != null) {
@@ -544,6 +530,7 @@ fun main(args: Array<String>) {
     tabContainer.add(renderer { bodyTabContent() })
     tabContainer.add(renderer { timingsTabContent() })
 
+    val tabLabels = listOf("Request", "Resp Headers", "Body", "Diagnostics")
     val detailRenderer = renderer(tabContainer) {
         val entry = entries[selectedEntry.value]
         val method = entry.request.method.uppercase()
