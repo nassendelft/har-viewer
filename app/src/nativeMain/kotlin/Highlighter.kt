@@ -7,10 +7,24 @@ interface Highlighter {
     fun tokenizeLines(text: String): List<List<StyledSpan>>
 }
 
-private val highlighters: List<Highlighter> = listOf(JsonHighlighter)
+private val highlighters: List<Highlighter> = listOf(
+    JsonHighlighter, FormHighlighter, MarkupHighlighter, JsHighlighter
+)
 
 fun highlighterFor(mimeType: String): Highlighter? =
     highlighters.firstOrNull { it.accepts(mimeType) }
+
+fun spansToLines(spans: List<StyledSpan>): List<List<StyledSpan>> {
+    val lines = mutableListOf(mutableListOf<StyledSpan>())
+    for (span in spans) {
+        val parts = span.text.split('\n')
+        parts.forEachIndexed { idx, part ->
+            if (part.isNotEmpty()) lines.last().add(StyledSpan(part, span.color))
+            if (idx < parts.lastIndex) lines.add(mutableListOf())
+        }
+    }
+    return lines
+}
 
 fun renderHighlightedLine(spans: List<StyledSpan>): Element =
     if (spans.isEmpty()) text("")

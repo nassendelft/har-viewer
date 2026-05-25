@@ -15,17 +15,7 @@ private fun colorFor(type: JsonTokenType): Color = when (type) {
 object JsonHighlighter : Highlighter {
     override fun accepts(mimeType: String) = mimeType.contains("json", ignoreCase = true)
 
-    override fun tokenizeLines(text: String): List<List<StyledSpan>> {
-        val lines = mutableListOf(mutableListOf<StyledSpan>())
-        for (span in tokenize(text)) {
-            val parts = span.text.split('\n')
-            parts.forEachIndexed { idx, part ->
-                if (part.isNotEmpty()) lines.last().add(StyledSpan(part, span.color))
-                if (idx < parts.lastIndex) lines.add(mutableListOf())
-            }
-        }
-        return lines
-    }
+    override fun tokenizeLines(text: String) = spansToLines(tokenize(text))
 
     private fun tokenize(json: String): List<StyledSpan> {
         val result = mutableListOf<StyledSpan>()
