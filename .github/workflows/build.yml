@@ -1,0 +1,74 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: gradle-macos-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-macos-
+
+      - name: Build
+        run: ./gradlew :app:linkReleaseExecutableMacosArm64
+
+      - name: Rename binary
+        run: mv app/build/bin/macosArm64/releaseExecutable/app.kexe app/build/bin/macosArm64/releaseExecutable/har-view
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: har-viewer-macos-arm64
+          path: app/build/bin/macosArm64/releaseExecutable/har-view
+
+  build-linux-arm64:
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: gradle-linux-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-linux-
+
+      - name: Build
+        run: ./gradlew :app:linkReleaseExecutableLinuxArm64
+
+      - name: Rename binary
+        run: mv app/build/bin/linuxArm64/releaseExecutable/app.kexe app/build/bin/linuxArm64/releaseExecutable/har-view
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: har-viewer-linux-arm64
+          path: app/build/bin/linuxArm64/releaseExecutable/har-view

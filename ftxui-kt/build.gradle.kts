@@ -1,14 +1,20 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
     kotlin("multiplatform")
 }
 
 kotlin {
-    macosArm64 {
-        binaries {
-            executable()
-        }
-        compilations.getByName("main") {
-            val ftxui_c by cinterops.creating
+    macosArm64()
+    linuxArm64()
+
+    targets.forEach {
+        (it as? KotlinNativeTarget)?.apply {
+            binaries.executable()
+
+            compilations.getByName("main") {
+                val ftxui_c by cinterops.creating
+            }
         }
     }
 }
@@ -37,3 +43,4 @@ tasks.register<Exec>("buildFtxuiC") {
 }
 
 tasks.getByName("cinteropFtxui_cMacosArm64").dependsOn("buildFtxuiC")
+tasks.getByName("cinteropFtxui_cLinuxArm64").dependsOn("buildFtxuiC")

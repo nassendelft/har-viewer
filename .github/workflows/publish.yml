@@ -1,0 +1,165 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: gradle-macos-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-macos-
+
+      - name: Build
+        run: ./gradlew :app:linkReleaseExecutableMacosArm64
+
+      - name: Package
+        run: |
+          cp app/build/bin/macosArm64/releaseExecutable/app.kexe har-view
+          tar -czf har-viewer-macos-arm64.tar.gz har-view
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: har-viewer-macos-arm64
+          path: har-viewer-macos-arm64.tar.gz
+
+  build-linux-arm64:
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.konan
+          key: gradle-linux-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-linux-
+
+      - name: Build
+        run: ./gradlew :app:linkReleaseExecutableLinuxArm64
+
+      - name: Package
+        run: |
+          cp app/build/bin/linuxArm64/releaseExecutable/app.kexe har-view
+          tar -czf har-viewer-linux-arm64.tar.gz har-view
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: har-viewer-linux-arm64
+          path: har-viewer-linux-arm64.tar.gz
+
+  release:
+    needs: [build-macos-arm64, build-linux-arm64]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      macos_arm64_sha256: ${{ steps.checksums.outputs.macos_arm64_sha256 }}
+      linux_arm64_sha256: ${{ steps.checksums.outputs.linux_arm64_sha256 }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: har-viewer-*
+          merge-multiple: true
+
+      - name: Compute checksums
+        id: checksums
+        run: |
+          echo "macos_arm64_sha256=$(sha256sum har-viewer-macos-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "linux_arm64_sha256=$(sha256sum har-viewer-linux-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Get version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            --generate-notes \
+            har-viewer-macos-arm64.tar.gz \
+            har-viewer-linux-arm64.tar.gz
+
+  update-homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nassendelft/homebrew-har-viewer
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update formula
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          MACOS_ARM64_SHA256: ${{ needs.release.outputs.macos_arm64_sha256 }}
+          LINUX_ARM64_SHA256: ${{ needs.release.outputs.linux_arm64_sha256 }}
+        run: |
+          cat > Formula/har-viewer.rb << EOF
+          class HarViewer < Formula
+            desc "Terminal UI HAR file viewer"
+            homepage "https://github.com/nassendelft/har-viewer"
+            version "${VERSION}"
+            license "GPL-3.0"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-macos-arm64.tar.gz"
+                sha256 "${MACOS_ARM64_SHA256}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/nassendelft/har-viewer/releases/download/v${VERSION}/har-viewer-linux-arm64.tar.gz"
+                sha256 "${LINUX_ARM64_SHA256}"
+              end
+            end
+
+            def install
+              bin.install "har-view"
+            end
+
+            test do
+              assert_predicate bin/"har-view", :exist?
+            end
+          end
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/har-viewer.rb
+          git commit -m "har-viewer ${{ needs.release.outputs.version }}"
+          git push

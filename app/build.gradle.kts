@@ -1,14 +1,15 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
 }
 
 kotlin {
-    macosArm64 {
-        binaries {
-            executable()
-        }
-    }
+    macosArm64()
+    linuxArm64()
+
+    targets.forEach { (it as? KotlinNativeTarget)?.binaries?.executable() }
 
     sourceSets {
         commonMain {
