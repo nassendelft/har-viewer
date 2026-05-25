@@ -479,89 +479,96 @@ fun main(args: Array<String>) {
         ).flex()
     }
 
-    val entryLabels = entries.map { "${it.request.method}  ${it.request.url}" }
-    val requestListMenu = menu(entryLabels, selectedEntry)
+    fun buildRequestPanel(): Component {
+        val entryLabels = entries.map { "${it.request.method}  ${it.request.url}" }
+        val requestListMenu = menu(entryLabels, selectedEntry)
 
-    val leftSubPanel = tab(leftSubFocus)
-    leftSubPanel.add(requestListMenu)
-    leftSubPanel.add(searchInput)
+        val leftSubPanel = tab(leftSubFocus)
+        leftSubPanel.add(requestListMenu)
+        leftSubPanel.add(searchInput)
 
-    val requestListRenderer = leftSubPanel.decorateRender { buildRequestListContent(it) }
-        .catchEvent { event ->
-            val filtered = getFilteredEntries()
-            val currentPos = filtered.indexOfFirst { it.first == selectedEntry.value }
-            val isSearchFocused = leftSubFocus.value == 1
-            val maxUrlLen = filtered.maxOfOrNull { (_, e) -> e.request.url.length } ?: 0
-            val maxHOffset = maxOf(0, maxUrlLen - maxOf(1, leftSize.value - 2))
-            when {
-                event.isMouse -> true
-                event.isKey("/") && !isSearchFocused -> { leftSubFocus.value = 1; true }
-                event.isKey(Key.Escape) && isSearchFocused -> { leftSubFocus.value = 0; true }
-                event.isKey(Key.Return) && isSearchFocused -> { leftSubFocus.value = 0; true }
-                (event.isKey(Key.ArrowRight) || event.isKey("l")) && !isSearchFocused -> {
-                    hScrollOffset.value = minOf(hScrollOffset.value + 5, maxHOffset); true
-                }
-                (event.isKey(Key.ArrowLeft) || event.isKey("h")) && !isSearchFocused -> {
-                    hScrollOffset.value = maxOf(hScrollOffset.value - 5, 0); true
-                }
-                event.isKey(Key.ArrowUp) -> {
-                    when {
-                        filtered.isEmpty() -> { }
-                        currentPos < 0 -> selectedEntry.value = filtered.last().first
-                        currentPos > 0 -> selectedEntry.value = filtered[currentPos - 1].first
+        return leftSubPanel.decorateRender { buildRequestListContent(it) }
+            .catchEvent { event ->
+                val filtered = getFilteredEntries()
+                val currentPos = filtered.indexOfFirst { it.first == selectedEntry.value }
+                val isSearchFocused = leftSubFocus.value == 1
+                val maxUrlLen = filtered.maxOfOrNull { (_, e) -> e.request.url.length } ?: 0
+                val maxHOffset = maxOf(0, maxUrlLen - maxOf(1, leftSize.value - 2))
+                when {
+                    event.isMouse -> true
+                    event.isKey("/") && !isSearchFocused -> { leftSubFocus.value = 1; true }
+                    event.isKey(Key.Escape) && isSearchFocused -> { leftSubFocus.value = 0; true }
+                    event.isKey(Key.Return) && isSearchFocused -> { leftSubFocus.value = 0; true }
+                    (event.isKey(Key.ArrowRight) || event.isKey("l")) && !isSearchFocused -> {
+                        hScrollOffset.value = minOf(hScrollOffset.value + 5, maxHOffset); true
                     }
-                    true
-                }
-                event.isKey(Key.ArrowDown) -> {
-                    when {
-                        filtered.isEmpty() -> { }
-                        currentPos < 0 -> selectedEntry.value = filtered.first().first
-                        currentPos < filtered.size - 1 -> selectedEntry.value = filtered[currentPos + 1].first
+                    (event.isKey(Key.ArrowLeft) || event.isKey("h")) && !isSearchFocused -> {
+                        hScrollOffset.value = maxOf(hScrollOffset.value - 5, 0); true
                     }
-                    true
+                    event.isKey(Key.ArrowUp) -> {
+                        when {
+                            filtered.isEmpty() -> { }
+                            currentPos < 0 -> selectedEntry.value = filtered.last().first
+                            currentPos > 0 -> selectedEntry.value = filtered[currentPos - 1].first
+                        }
+                        true
+                    }
+                    event.isKey(Key.ArrowDown) -> {
+                        when {
+                            filtered.isEmpty() -> { }
+                            currentPos < 0 -> selectedEntry.value = filtered.first().first
+                            currentPos < filtered.size - 1 -> selectedEntry.value = filtered[currentPos + 1].first
+                        }
+                        true
+                    }
+                    event.isKey(Key.Return) && !isSearchFocused -> { focusedPanel.value = 1; true }
+                    else -> false
                 }
-                event.isKey(Key.Return) && !isSearchFocused -> { focusedPanel.value = 1; true }
-                else -> false
             }
-        }
-
-    val tabContainer = tab(tabSelected)
-    tabContainer.add(renderer { requestTabContent() })
-    tabContainer.add(renderer { responseHeadersTabContent() })
-    tabContainer.add(renderer { bodyTabContent() })
-    tabContainer.add(renderer { timingsTabContent() })
-
-    val tabLabels = listOf("Request", "Resp Headers", "Body", "Diagnostics")
-    val detailRenderer = renderer(tabContainer) {
-        val entry = entries[selectedEntry.value]
-        val method = entry.request.method.uppercase()
-        val mColor = methodColor(method)
-        val detailsFocused = focusedPanel.value == 1
-        vbox(
-            hbox(
-                text(" $method ").bold().bgcolor(mColor).color(Color.White)
-                    .let { if (!detailsFocused) it.dim() else it },
-                text("  ${entry.request.url}"),
-            ),
-            separator(),
-            renderTabBar(tabSelected.value, focusedPanel.value, tabLabels),
-            separator(),
-            tabContainer.render().flex(),
-        ).flex().window(run {
-            val labelColor = if (focusedPanel.value == 1) Color.CyanLight else Color.GrayDark
-            hbox(text(" [ "), text("d").underlined().bold().color(Color.GreenLight), text("etails").bold().color(labelColor), text(" ] "))
-        })
-        .let { if (focusedPanel.value != 1) it.color(Color.GrayDark) else it }
     }
 
+    fun buildDetailsPanel(): Component {
+        val tabContainer = tab(tabSelected)
+        tabContainer.add(renderer { requestTabContent() })
+        tabContainer.add(renderer { responseHeadersTabContent() })
+        tabContainer.add(renderer { bodyTabContent() })
+        tabContainer.add(renderer { timingsTabContent() })
+
+        val tabLabels = listOf("Request", "Resp Headers", "Body", "Diagnostics")
+        return renderer(tabContainer) {
+            val entry = entries[selectedEntry.value]
+            val method = entry.request.method.uppercase()
+            val mColor = methodColor(method)
+            val detailsFocused = focusedPanel.value == 1
+            vbox(
+                hbox(
+                    text(" $method ").bold().bgcolor(mColor).color(Color.White)
+                        .let { if (!detailsFocused) it.dim() else it },
+                    text("  ${entry.request.url}"),
+                ),
+                separator(),
+                renderTabBar(tabSelected.value, focusedPanel.value, tabLabels),
+                separator(),
+                tabContainer.render().flex(),
+            ).flex().window(run {
+                val labelColor = if (focusedPanel.value == 1) Color.CyanLight else Color.GrayDark
+                hbox(text(" [ "), text("d").underlined().bold().color(Color.GreenLight), text("etails").bold().color(labelColor), text(" ] "))
+            })
+            .let { if (focusedPanel.value != 1) it.color(Color.GrayDark) else it }
+        }
+    }
+
+    val requestPanel = buildRequestPanel()
+    val detailsPanel = buildDetailsPanel()
+
     val panelRouter = tab(focusedPanel)
-    panelRouter.add(requestListRenderer)
-    panelRouter.add(detailRenderer)
+    panelRouter.add(requestPanel)
+    panelRouter.add(detailsPanel)
 
     val mainContainer = renderer(panelRouter) {
         hbox(
-            requestListRenderer.render().size(WidthOrHeight.Width, Constraint.Equal, leftSize.value),
-            detailRenderer.render().flex(),
+            requestPanel.render().size(WidthOrHeight.Width, Constraint.Equal, leftSize.value),
+            detailsPanel.render().flex(),
         )
     }.catchEvent { event ->
         val searchActive = focusedPanel.value == 0 && leftSubFocus.value == 1
