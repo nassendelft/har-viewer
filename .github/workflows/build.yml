@@ -38,38 +38,6 @@ jobs:
           name: har-viewer-macos-arm64
           path: app/build/bin/macosArm64/releaseExecutable/har-view
 
-  build-macos-x64:
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.konan
-          key: gradle-macos-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-macos-
-
-      - name: Build
-        run: ./gradlew :app:linkReleaseExecutableMacosX64
-
-      - name: Rename binary
-        run: mv app/build/bin/macosX64/releaseExecutable/app.kexe app/build/bin/macosX64/releaseExecutable/har-view
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: har-viewer-macos-x64
-          path: app/build/bin/macosX64/releaseExecutable/har-view
-
   build-linux-arm64:
     runs-on: ubuntu-22.04
     steps:
