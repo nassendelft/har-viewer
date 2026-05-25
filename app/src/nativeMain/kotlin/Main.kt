@@ -260,12 +260,13 @@ fun main(args: Array<String>) {
                     filler(),
                 ).bgcolor(beige))
                 add(separatorEmpty())
+                val reqHighlighter = highlighterFor(postData.mimeType)
                 if (postData.params.isNotEmpty()) {
                     addAll(keyValueRows(postData.params.map { it.name to (it.value ?: "") }, annotations = postData.params.map { paramAnnotation(it) }))
                 } else if (bodyLines.isEmpty()) {
                     add(text("(empty)").dim())
-                } else if (isJson(postData.mimeType)) {
-                    if (reqBodyHighlightedLines == null) reqBodyHighlightedLines = tokenizeJsonLines(postData.text ?: "")
+                } else if (reqHighlighter != null) {
+                    if (reqBodyHighlightedLines == null) reqBodyHighlightedLines = reqHighlighter.tokenizeLines(postData.text ?: "")
                     val reqBodyWidth = maxOf(1, Terminal.size().dimx - leftSize.value - 2)
                     reqBodyHighlightedLines!!.forEach { spans -> add(renderHighlightedLine(clipSpans(spans, 0, reqBodyWidth))) }
                 } else {
@@ -354,8 +355,8 @@ fun main(args: Array<String>) {
             bodyHighlightedLines = null
         }
         val mimeType = content.mimeType
-        val isJsonBody = isJson(mimeType)
-        if (isJsonBody && bodyHighlightedLines == null) bodyHighlightedLines = tokenizeJsonLines(bodyText)
+        val bodyHighlighter = highlighterFor(mimeType)
+        if (bodyHighlighter != null && bodyHighlightedLines == null) bodyHighlightedLines = bodyHighlighter.tokenizeLines(bodyText)
         val lines = bodyText.lines()
         bodyLineCount = lines.size
         bodyMaxLineWidth = lines.maxOfOrNull { it.length } ?: 0
@@ -380,7 +381,7 @@ fun main(args: Array<String>) {
             separatorEmpty(),
             hbox(
                 vbox(*visibleLines.mapIndexed { idx, line ->
-                    if (isJsonBody) {
+                    if (bodyHighlighter != null) {
                         val spans = bodyHighlightedLines!!.getOrElse(bodyScrollY.value + idx) { emptyList() }
                         renderHighlightedLine(clipSpans(spans, bodyScrollX.value, panelWidth))
                     } else {
