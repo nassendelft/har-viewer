@@ -32,12 +32,12 @@ internal class RequestTab(private val appState: AppState) {
                 entry.serverIPAddress?.let { add("Server IP" to it) }
                 entry.connection?.let { add("Connection" to it) }
                 entry.pageref?.let { add("Page" to it) }
-            }))
+            }, panelWidth))
             if (req.queryString.isNotEmpty()) {
                 add(separatorEmpty())
                 add(hbox(text(" Query Parameters").bold().color(black), text("  ${req.queryString.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
-                addAll(keyValueRows(req.queryString.map { it.name to it.value }))
+                addAll(keyValueRows(req.queryString.map { it.name to it.value }, panelWidth))
             }
             add(separatorEmpty())
             val reqSizeInfo = buildString {
@@ -56,7 +56,7 @@ internal class RequestTab(private val appState: AppState) {
                 add(separatorEmpty())
                 add(hbox(text(" Request Cookies").bold().color(black), text("  ${req.cookies.size}").color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
-                addAll(keyValueRows(req.cookies.map { it.name to it.value }, annotations = req.cookies.map { cookieAnnotation(it) }))
+                addAll(keyValueRows(req.cookies.map { it.name to it.value }, panelWidth, annotations = req.cookies.map { cookieAnnotation(it) }))
             }
             if (postData != null) {
                 add(separatorEmpty())
@@ -68,7 +68,7 @@ internal class RequestTab(private val appState: AppState) {
                 add(separatorEmpty())
                 val reqHighlighter = highlighterFor(postData.mimeType)
                 if (postData.params.isNotEmpty()) {
-                    addAll(keyValueRows(postData.params.map { it.name to (it.value ?: "") }, annotations = postData.params.map { paramAnnotation(it) }))
+                    addAll(keyValueRows(postData.params.map { it.name to (it.value ?: "") }, panelWidth, annotations = postData.params.map { paramAnnotation(it) }))
                 } else if (bodyLines.isEmpty()) {
                     add(text("(empty)").dim())
                 } else if (reqHighlighter != null) {

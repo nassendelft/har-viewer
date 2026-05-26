@@ -35,22 +35,32 @@ internal fun keyValueRows(
     annotations: List<String?> = emptyList(),
 ): List<Element> {
     if (pairs.isEmpty()) return listOf(text("(none)").dim())
-    val nameWidth = pairs.maxOf { it.first.length }
     val rows = mutableListOf<Element>()
-    for ((i, pair) in pairs.withIndex()) {
-        val (name, value) = pair
-        if (panelWidth > 0) {
-            val chunkSize = maxOf(20, panelWidth - 1 - 2 - nameWidth - 3 - 1)
-            value.chunked(chunkSize).forEachIndexed { j, chunk ->
-                val nameCell = if (j == 0) text(name.padEnd(nameWidth)).bold().color(Color.CyanLight)
-                               else text(" ".repeat(nameWidth))
-                rows.add(hbox(nameCell, text(" │ ").dim(), text(chunk).color(beige)))
+    if (panelWidth > 0) {
+        val keyWidth = maxOf(10, panelWidth / 4)
+        val valueWidth = maxOf(20, panelWidth - keyWidth - 3)
+        for ((i, pair) in pairs.withIndex()) {
+            val (name, value) = pair
+            val nameChunks = name.chunked(keyWidth)
+            val valueChunks = value.chunked(valueWidth)
+            val maxChunks = maxOf(nameChunks.size, valueChunks.size)
+            for (j in 0 until maxChunks) {
+                val namePadded = nameChunks.getOrElse(j) { "" }.padEnd(keyWidth)
+                val valueChunk = valueChunks.getOrElse(j) { "" }
+                val nameCell = text(namePadded).bold().color(Color.CyanLight)
+                rows.add(hbox(nameCell, text(" │ ").dim(), text(valueChunk).color(beige)))
             }
-        } else {
-            rows.add(hbox(text(name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(value).color(beige)))
+            annotations.getOrNull(i)?.let { rows.add(hbox(text(" ".repeat(keyWidth + 3)), text(it).dim())) }
+            if (i < pairs.lastIndex) rows.add(separator())
         }
-        annotations.getOrNull(i)?.let { rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(it).dim())) }
-        if (i < pairs.lastIndex) rows.add(separator())
+    } else {
+        val nameWidth = pairs.maxOf { it.first.length }
+        for ((i, pair) in pairs.withIndex()) {
+            val (name, value) = pair
+            rows.add(hbox(text(name.padEnd(nameWidth)).bold().color(Color.CyanLight), text(" │ ").dim(), text(value).color(beige)))
+            annotations.getOrNull(i)?.let { rows.add(hbox(text(" ".repeat(nameWidth + 3)), text(it).dim())) }
+            if (i < pairs.lastIndex) rows.add(separator())
+        }
     }
     return rows
 }
