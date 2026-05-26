@@ -26,7 +26,7 @@ internal class DetailsPanel(
                 hbox(
                     text(" $method ").bold().bgcolor(mColor).color(Color.White)
                         .let { if (!detailsFocused) it.dim() else it },
-                    text("  ${entry.request.url}"),
+                    text("  ${displayUrl(entry.request.url).substringBefore('?').substringBefore('#')}"),
                 ),
                 separator(),
                 renderTabBar(appState.tabSelected.value, appState.focusedPanel.value, tabLabels),

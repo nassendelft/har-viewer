@@ -2,6 +2,15 @@ import har.Cookie
 import har.Param
 import nl.ncaj.*
 
+private const val DATA_URL_MAX = 64
+
+internal fun displayUrl(url: String): String {
+    if (!url.startsWith("data:")) return url
+    val header = url.substringBefore(',')
+    val preview = "$header,…"
+    return if (preview.length <= DATA_URL_MAX) preview else "${url.take(DATA_URL_MAX)}…"
+}
+
 internal fun resourceType(mimeType: String): ResourceType {
     val base = mimeType.substringBefore(';').trim().lowercase()
     return when {
