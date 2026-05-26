@@ -27,6 +27,8 @@ internal class RequestTab(private val appState: AppState) {
             add(hbox(text(" Overview").bold().color(black), filler()).bgcolor(beige))
             add(separatorEmpty())
             addAll(keyValueRows(buildList {
+                add("Method" to req.method.uppercase())
+                add("URL" to displayUrl(req.url).substringBefore('?').substringBefore('#'))
                 add("Started" to entry.startedDateTime)
                 add("HTTP" to req.httpVersion)
                 entry.serverIPAddress?.let { add("Server IP" to it) }

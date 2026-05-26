@@ -44,7 +44,6 @@ fun main(args: Array<String>) {
         val onDetails = appState.focusedPanel.value == 1
         when {
             event.isKey("r") && !searchActive -> { appState.focusedPanel.value = 0; true }
-            event.isKey("d") && !searchActive -> { appState.focusedPanel.value = 1; true }
             event.isKey("1") && !searchActive -> { appState.tabSelected.value = 0; appState.focusedPanel.value = 1; true }
             event.isKey("2") && !searchActive -> { appState.tabSelected.value = 1; appState.focusedPanel.value = 1; true }
             event.isKey("3") && !searchActive -> { appState.tabSelected.value = 2; appState.focusedPanel.value = 1; true }

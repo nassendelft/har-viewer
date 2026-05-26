@@ -18,23 +18,14 @@ internal class DetailsPanel(
 
         val tabLabels = listOf("Request", "Resp Headers", "Body", "Diagnostics")
         return renderer(tabContainer) {
-            val entry = appState.entries[appState.selectedEntry.value]
-            val method = entry.request.method.uppercase()
-            val mColor = methodColor(method)
             val detailsFocused = appState.focusedPanel.value == 1
             vbox(
-                hbox(
-                    text(" $method ").bold().bgcolor(mColor).color(Color.White)
-                        .let { if (!detailsFocused) it.dim() else it },
-                    text("  ${displayUrl(entry.request.url).substringBefore('?').substringBefore('#')}"),
-                ),
-                separator(),
                 renderTabBar(appState.tabSelected.value, appState.focusedPanel.value, tabLabels),
                 separator(),
                 tabContainer.render().flex(),
             ).flex().window(run {
                 val labelColor = if (appState.focusedPanel.value == 1) Color.CyanLight else Color.GrayDark
-                hbox(text(" [ "), text("d").underlined().bold().color(Color.GreenLight), text("etails").bold().color(labelColor), text(" ] "))
+                text(" details ").bold().color(labelColor)
             })
             .let { if (appState.focusedPanel.value != 1) it.color(Color.GrayDark) else it }
         }
