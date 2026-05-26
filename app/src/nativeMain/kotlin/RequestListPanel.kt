@@ -24,7 +24,7 @@ internal class RequestListPanel(private val appState: AppState) {
                 val filtered = getFilteredEntries()
                 val currentPos = filtered.indexOfFirst { it.first == appState.selectedEntry.value }
                 val isSearchFocused = leftSubFocus.value == 1
-                val maxUrlLen = filtered.maxOfOrNull { (_, e) -> displayUrl(e.request.url).length } ?: 0
+                val maxUrlLen = filtered.maxOfOrNull { (_, e) -> displayUrl(e.request.url).substringBefore('?').substringBefore('#').length } ?: 0
                 val maxHOffset = maxOf(0, maxUrlLen - maxOf(1, appState.leftSize.value - 2))
                 val listPageSize = maxOf(1, Terminal.size().dimy - 6)
                 val halfListPage = maxOf(1, listPageSize / 2)
@@ -118,7 +118,7 @@ internal class RequestListPanel(private val appState: AppState) {
             val method = entry.request.method.uppercase()
             val color = methodColor(method)
             val isSelected = origIdx == appState.selectedEntry.value
-            val url = displayUrl(entry.request.url)
+            val url = displayUrl(entry.request.url).substringBefore('?').substringBefore('#')
             val prefix = if (scroll > 0) "…" else " "
             val displayUrl = if (scroll > 0) url.drop(scroll) else url
             val methodElem = text(" ${method.padEnd(maxMethodLen)} ").bold()
@@ -164,7 +164,7 @@ internal class RequestListPanel(private val appState: AppState) {
                     .flex()
         }
 
-        val maxUrlLen = filtered.maxOfOrNull { (_, e) -> e.request.url.length } ?: 0
+        val maxUrlLen = filtered.maxOfOrNull { (_, e) -> displayUrl(e.request.url).substringBefore('?').substringBefore('#').length } ?: 0
         val visibleW = maxOf(1, appState.leftSize.value - 2)
 
         return vbox(
