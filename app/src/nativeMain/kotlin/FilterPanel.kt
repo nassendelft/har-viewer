@@ -27,7 +27,6 @@ internal class FilterPanel(private val filterState: FilterState) {
                 separator(),
                 hbox(
                     text(" [").dim(), text("a").bold(), text("]ll  ").dim(),
-                    text("[").dim(), text("n").bold(), text("]one  ").dim(),
                     text("[Esc] close").dim(),
                 ),
             ).border()
@@ -35,11 +34,6 @@ internal class FilterPanel(private val filterState: FilterState) {
             when {
                 event.isKey(Key.Escape) -> { filterState.showModal.value = false; true }
                 event.isKey("a") -> {
-                    filterState.methodStates.values.forEach { it.value = true }
-                    filterState.typeStates.values.forEach { it.value = true }
-                    true
-                }
-                event.isKey("n") -> {
                     filterState.methodStates.values.forEach { it.value = false }
                     filterState.typeStates.values.forEach { it.value = false }
                     true

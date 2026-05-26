@@ -97,9 +97,11 @@ internal class RequestListPanel(private val appState: AppState) {
         } catch (_: Exception) {
             appState.entries.mapIndexed { i, e -> i to e }
         }
+        val anyMethodSelected = fs.methodStates.values.any { it.value }
+        val anyTypeSelected = fs.typeStates.values.any { it.value }
         return urlFiltered
-            .filter { (_, e) -> fs.methodStates[e.request.method.uppercase()]?.value != false }
-            .filter { (_, e) -> fs.typeStates[resourceType(e.response.content.mimeType)]?.value != false }
+            .filter { (_, e) -> !anyMethodSelected || fs.methodStates[e.request.method.uppercase()]?.value == true }
+            .filter { (_, e) -> !anyTypeSelected || fs.typeStates[resourceType(e.response.content.mimeType)]?.value == true }
     }
 
     private fun buildRequestListContent(subElem: Element): Element {
@@ -146,7 +148,7 @@ internal class RequestListPanel(private val appState: AppState) {
             else -> Color.Default
         }
         val fs = appState.filterState
-        val activeCount = fs.methodStates.values.count { !it.value } + fs.typeStates.values.count { !it.value }
+        val activeCount = fs.methodStates.values.count { it.value } + fs.typeStates.values.count { it.value }
         val filterElem = hbox(
             text(" [").color(filterKeyColor),
             text("f").bold().color(filterKeyColor),
