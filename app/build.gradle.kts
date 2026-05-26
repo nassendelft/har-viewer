@@ -15,13 +15,34 @@ val nativeTargetName = (findProperty("native.target") as String?)
         else -> error("Unsupported host OS: $hostOs ($hostArch)")
     }
 
+val stbImageBuildDir = project.file("build/stb_image")
+
+tasks.register<Exec>("buildStbImage") {
+    val srcFile = project.file("src/nativeInterop/stb_image/stb_image_impl.c")
+    val hFile = project.file("src/nativeInterop/stb_image/stb_image.h")
+    inputs.files(srcFile, hFile)
+    outputs.file(stbImageBuildDir.resolve("libstb_image.a"))
+    doFirst { stbImageBuildDir.mkdirs() }
+    val cc = when {
+        nativeTargetName == "linuxArm64" && hostArch != "aarch64" -> "aarch64-linux-gnu-gcc"
+        else -> "cc"
+    }
+    commandLine(
+        "bash", "-c",
+        "$cc -c ${srcFile.absolutePath} -o ${stbImageBuildDir}/stb_image_impl.o && " +
+            "ar rcs ${stbImageBuildDir}/libstb_image.a ${stbImageBuildDir}/stb_image_impl.o"
+    )
+}
+
 kotlin {
-    when (nativeTargetName) {
+    val nativeTarget = when (nativeTargetName) {
         "macosArm64" -> macosArm64()
         "linuxArm64" -> linuxArm64()
         "linuxX64" -> linuxX64()
         else -> error("Unsupported target: $nativeTargetName")
-    }.binaries.executable {
+    }
+
+    nativeTarget.binaries.executable {
         when (nativeTargetName) {
             "linuxX64" -> linkerOpts("/usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a", "-lm")
             "linuxArm64" -> linkerOpts(
@@ -29,6 +50,13 @@ kotlin {
                 "/usr/lib/gcc-cross/aarch64-linux-gnu/11/libgcc.a",
                 "-lm"
             )
+        }
+    }
+
+    nativeTarget.compilations.getByName("main") {
+        val stb_image by cinterops.creating {
+            includeDirs(project.file("src/nativeInterop/stb_image"))
+            extraOpts("-libraryPath", stbImageBuildDir.absolutePath)
         }
     }
 
@@ -42,3 +70,6 @@ kotlin {
         }
     }
 }
+
+val cinteropStbTask = "cinteropStb_image${nativeTargetName.replaceFirstChar { it.uppercase() }}"
+tasks.getByName(cinteropStbTask).dependsOn("buildStbImage")

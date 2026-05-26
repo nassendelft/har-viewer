@@ -1,0 +1,3 @@
+headers = stb_image.h
+package = stb_image
+staticLibraries = libstb_image.a
