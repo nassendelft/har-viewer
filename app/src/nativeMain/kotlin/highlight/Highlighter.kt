@@ -1,3 +1,5 @@
+package highlight
+
 import nl.ncaj.*
 
 data class StyledSpan(val text: String, val color: Color)

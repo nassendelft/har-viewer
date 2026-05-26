@@ -1,3 +1,5 @@
+package highlight
+
 import nl.ncaj.*
 
 object JsHighlighter : Highlighter {

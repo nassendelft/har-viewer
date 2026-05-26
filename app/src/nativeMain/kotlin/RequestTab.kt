@@ -1,3 +1,4 @@
+import highlight.*
 import nl.ncaj.*
 
 internal class RequestTab(private val appState: AppState) {

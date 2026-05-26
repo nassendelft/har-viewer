@@ -1,3 +1,5 @@
+package highlight
+
 import kotlinx.serialization.json.*
 import nl.ncaj.*
 
