@@ -43,7 +43,10 @@ har-view <file.har>
 | `3` | Switch to Body tab |
 | `4` | Switch to Diagnostics tab |
 | `↑` / `↓` or `j` / `k` | Scroll content (detail panel) |
+| `Ctrl+U` / `Ctrl+D` | Scroll up/down half a page |
+| `Ctrl+B` / `Ctrl+F` or `PgUp` / `PgDn` | Scroll up/down a full page |
 | `←` / `→` or `h` / `l` | Scroll body horizontally (Body tab) |
+| `p` | Toggle JSON pretty-print (Body tab) |
 | `Ctrl+C` | Quit |
 
 ## Features
@@ -52,7 +55,7 @@ har-view <file.har>
 - **Regex filter** — press `/` to filter requests by URL using a regular expression
 - **Request tab** — overview, query parameters, request headers, cookies, and request body
 - **Resp Headers tab** — response status, headers, cookies, and redirect target
-- **Body tab** — response body with JSON syntax highlighting and horizontal scrolling
+- **Body tab** — response body with syntax highlighting for JSON, HTML/XML, JavaScript, and form data; horizontal scrolling; and JSON pretty-print toggle
 - **Diagnostics tab** — visual timing bars for blocked, DNS, connect, SSL, send, wait, and receive phases, plus cache state
 
 ## Building from source
