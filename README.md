@@ -1,6 +1,6 @@
 # har-viewer
 
-A terminal UI for inspecting [HAR](https://en.wikipedia.org/wiki/HAR_(file_format)) (HTTP Archive) files. Browse requests, inspect headers, view response bodies with JSON syntax highlighting, and analyze timing breakdowns — all from the command line.
+A terminal UI for inspecting [HAR](https://en.wikipedia.org/wiki/HAR_(file_format)) (HTTP Archive) files. Browse requests, inspect headers, view response bodies with JSON syntax highlighting, preview images, and analyze timing breakdowns — all from the command line.
 
 ![demo](docs/demo.gif)
 
@@ -42,6 +42,7 @@ har-view <file.har>
 | `2` | Switch to Resp Headers tab |
 | `3` | Switch to Body tab |
 | `4` | Switch to Diagnostics tab |
+| `5` | Switch to Image tab (image responses only) |
 | `↑` / `↓` or `j` / `k` | Scroll content (detail panel) |
 | `Ctrl+U` / `Ctrl+D` | Scroll up/down half a page |
 | `Ctrl+B` / `Ctrl+F` or `PgUp` / `PgDn` | Scroll up/down a full page |
@@ -53,10 +54,12 @@ har-view <file.har>
 
 - **Color-coded methods** — GET, POST, PUT, PATCH, DELETE and more are each a distinct color
 - **Regex filter** — press `/` to filter requests by URL using a regular expression
+- **Method and type filters** — press `f` to filter by HTTP method and resource type; no selection shows all, selecting narrows results
 - **Request tab** — overview, query parameters, request headers, cookies, and request body
 - **Resp Headers tab** — response status, headers, cookies, and redirect target
 - **Body tab** — response body with syntax highlighting for JSON, HTML/XML, JavaScript, and form data; horizontal scrolling; and JSON pretty-print toggle
 - **Diagnostics tab** — visual timing bars for blocked, DNS, connect, SSL, send, wait, and receive phases, plus cache state
+- **Image tab** — renders image responses directly in the terminal; uses the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/) where supported, falling back to Unicode half-block characters with 24-bit color
 
 ## Building from source
 
