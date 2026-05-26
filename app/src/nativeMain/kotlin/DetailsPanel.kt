@@ -28,8 +28,9 @@ internal class DetailsPanel(
             }
             val currentTab = appState.tabSelected.value
             if (!hasImage && currentTab == 4) appState.tabSelected.value = 0
-            if (lastTabSelected == 4 && currentTab != 4) imageTab.deactivate()
-            lastTabSelected = appState.tabSelected.value
+            val effectiveTab = appState.tabSelected.value
+            if (lastTabSelected == 4 && effectiveTab != 4) imageTab.deactivate()
+            lastTabSelected = effectiveTab
             vbox(
                 renderTabBar(appState.tabSelected.value, appState.focusedPanel.value, tabLabels),
                 separator(),
