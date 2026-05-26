@@ -4,11 +4,12 @@ internal class RequestListPanel(private val appState: AppState) {
     private val hScrollOffset = IntState(0)
     private val leftSubFocus  = IntState(0)
     private val searchQuery   = StringState("")
-    private val searchInput   = input(searchQuery, "filter (regex)…")
-    private var lastSearchPattern = ""
+    private val searchInput   = input(searchQuery, "search (regex)…")
     private var lastKey = ""
+    private val filterPanel   = FilterPanel(appState.filterState)
 
-    val isSearchActive: Boolean get() = appState.focusedPanel.value == 0 && leftSubFocus.value == 1
+    val isSearchActive: Boolean get() = appState.focusedPanel.value == 0 &&
+        (leftSubFocus.value == 1 || appState.filterState.showModal.value)
 
     fun build(): Component {
         val entryLabels = appState.entries.map { "${it.request.method}  ${it.request.url}" }
@@ -18,7 +19,7 @@ internal class RequestListPanel(private val appState: AppState) {
         leftSubPanel.add(requestListMenu)
         leftSubPanel.add(searchInput)
 
-        return leftSubPanel.decorateRender { buildRequestListContent(it) }
+        val listComponent = leftSubPanel.decorateRender { buildRequestListContent(it) }
             .catchEvent { event ->
                 val filtered = getFilteredEntries()
                 val currentPos = filtered.indexOfFirst { it.first == appState.selectedEntry.value }
@@ -72,9 +73,11 @@ internal class RequestListPanel(private val appState: AppState) {
                         if (filtered.isNotEmpty()) appState.selectedEntry.value = filtered.first().first; true
                     }
                     event.isKey(Key.Return) && !isSearchFocused -> { appState.focusedPanel.value = 1; true }
+                    event.isKey("f") && !isSearchFocused -> { appState.filterState.showModal.value = true; true }
                     else -> false
                 }
             }
+        return listComponent.modal(filterPanel.build(), appState.filterState.showModal)
     }
 
     fun free() {
@@ -83,15 +86,20 @@ internal class RequestListPanel(private val appState: AppState) {
         searchQuery.free()
     }
 
-    private fun getFilteredEntries() = run {
+    private fun getFilteredEntries(): List<Pair<Int, har.Entry>> {
+        val fs = appState.filterState
         val pat = searchQuery.value.trim()
-        if (pat.isEmpty()) appState.entries.mapIndexed { i, e -> i to e }
-        else try {
+        val urlFiltered = if (pat.isEmpty()) {
+            appState.entries.mapIndexed { i, e -> i to e }
+        } else try {
             val re = Regex(pat, RegexOption.IGNORE_CASE)
             appState.entries.mapIndexed { i, e -> i to e }.filter { (_, e) -> re.containsMatchIn(e.request.url) }
         } catch (_: Exception) {
             appState.entries.mapIndexed { i, e -> i to e }
         }
+        return urlFiltered
+            .filter { (_, e) -> fs.methodStates[e.request.method.uppercase()]?.value != false }
+            .filter { (_, e) -> fs.typeStates[resourceType(e.response.content.mimeType)]?.value != false }
     }
 
     private fun buildRequestListContent(subElem: Element): Element {
@@ -101,11 +109,8 @@ internal class RequestListPanel(private val appState: AppState) {
         val isSearchFocused = leftSubFocus.value == 1
         val filtered = getFilteredEntries()
 
-        if (searchQuery.value != lastSearchPattern) {
-            lastSearchPattern = searchQuery.value
-            if (filtered.none { it.first == appState.selectedEntry.value } && filtered.isNotEmpty()) {
-                appState.selectedEntry.value = filtered[0].first
-            }
+        if (filtered.none { it.first == appState.selectedEntry.value } && filtered.isNotEmpty()) {
+            appState.selectedEntry.value = filtered[0].first
         }
 
         val scroll = hScrollOffset.value
@@ -135,8 +140,22 @@ internal class RequestListPanel(private val appState: AppState) {
             searchInput.render(),
         ).border().color(searchBarColor)
 
+        val filterKeyColor = when {
+            !isFocused -> Color.GrayDark
+            appState.filterState.isActive -> Color.Yellow
+            else -> Color.Default
+        }
+        val fs = appState.filterState
+        val activeCount = fs.methodStates.values.count { !it.value } + fs.typeStates.values.count { !it.value }
+        val filterElem = hbox(
+            text(" [").color(filterKeyColor),
+            text("f").bold().color(filterKeyColor),
+            text("]ilter").color(filterKeyColor),
+            if (activeCount > 0) text("  $activeCount active").color(filterKeyColor) else text(""),
+        )
+
         val listElem = when {
-            filtered.isEmpty() && searchQuery.value.isNotBlank() ->
+            filtered.isEmpty() && (searchQuery.value.isNotBlank() || appState.filterState.isActive) ->
                 vbox(text("  no matches").dim()).flex()
             else ->
                 vbox(*listItems.toTypedArray())
@@ -150,6 +169,7 @@ internal class RequestListPanel(private val appState: AppState) {
 
         return vbox(
             searchElem,
+            filterElem,
             listElem,
             hScrollBar(hScrollOffset.value, maxUrlLen, visibleW),
         ).flex()

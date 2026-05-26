@@ -2,6 +2,23 @@ import har.Cookie
 import har.Param
 import nl.ncaj.*
 
+internal fun resourceType(mimeType: String): ResourceType {
+    val base = mimeType.substringBefore(';').trim().lowercase()
+    return when {
+        base == "text/html" || base == "application/xhtml+xml" -> ResourceType.Document
+        base == "application/javascript" || base == "text/javascript" || base == "application/x-javascript" -> ResourceType.Script
+        base == "text/css" -> ResourceType.Stylesheet
+        base.startsWith("image/") -> ResourceType.Image
+        base.startsWith("audio/") || base.startsWith("video/") -> ResourceType.Media
+        base.startsWith("font/") || base.startsWith("application/font-") ||
+            base == "application/x-font-woff" || base == "application/vnd.ms-fontobject" -> ResourceType.Font
+        base == "application/json" || base == "application/xml" || base == "text/xml" ||
+            base == "application/x-www-form-urlencoded" || base.startsWith("multipart/") ||
+            base == "text/csv" -> ResourceType.XHR
+        else -> ResourceType.Other
+    }
+}
+
 internal fun methodColor(method: String): Color = when (method.uppercase()) {
     "GET" -> Color.GreenLight
     "POST" -> yellow
