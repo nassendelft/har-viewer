@@ -35,7 +35,7 @@ internal class TimingsTab(private val appState: AppState) {
             }
 
         fun cacheStateRows(label: String, cs: har.CacheState): List<Element> = buildList {
-            add(hbox(text("  $label").bold().color(Color.CyanLight)))
+            add(hbox(text(label).bold().color(beige)))
             addAll(keyValueRows(buildList {
                 add("Last Access" to cs.lastAccess)
                 add("ETag" to cs.eTag)
@@ -69,7 +69,10 @@ internal class TimingsTab(private val appState: AppState) {
                 add(hbox(text(" Cache").bold().color(black), filler()).bgcolor(beige))
                 add(separatorEmpty())
                 cache.beforeRequest?.let { addAll(cacheStateRows("Before Request", it)) }
-                cache.afterRequest?.let { addAll(cacheStateRows("After Request", it)) }
+                cache.afterRequest?.let {
+                    if (cache.beforeRequest != null) add(separatorEmpty())
+                    addAll(cacheStateRows("After Request", it))
+                }
             }
         }
         rowCount = allRows.size

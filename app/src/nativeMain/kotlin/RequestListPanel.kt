@@ -172,6 +172,7 @@ internal class RequestListPanel(private val appState: AppState) {
         return vbox(
             searchElem,
             filterElem,
+            separator(),
             listElem,
             hScrollBar(hScrollOffset.value, maxUrlLen, visibleW),
         ).flex()
