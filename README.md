@@ -34,7 +34,6 @@ har-view <file.har>
 | `↑` / `↓` or `j` / `k` | Move through the request list |
 | `Enter` | Focus the detail panel |
 | `r` | Focus the requests panel |
-| `d` | Focus the details panel |
 | `/` | Open the regex filter |
 | `Esc` / `Enter` | Close the filter |
 | `←` / `→` or `h` / `l` | Scroll URLs horizontally (requests panel) |
@@ -48,7 +47,7 @@ har-view <file.har>
 | `Ctrl+B` / `Ctrl+F` or `PgUp` / `PgDn` | Scroll up/down a full page |
 | `←` / `→` or `h` / `l` | Scroll body horizontally (Body tab) |
 | `p` | Toggle JSON pretty-print (Body tab) |
-| `Ctrl+C` | Quit |
+| `q` / `Ctrl+C` | Quit |
 
 ## Features
 
