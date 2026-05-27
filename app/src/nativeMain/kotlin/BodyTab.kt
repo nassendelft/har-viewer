@@ -30,7 +30,8 @@ internal class BodyTab(
                 scrollX.value = maxOf(0, scrollX.value - 4); return true
             }
             event.isKey(Key.ArrowRight) || event.isKey("l") -> {
-                val panelW = maxOf(1, Terminal.size().dimx - appState.leftSize.value - 2 - 1)
+                val gutterW = lineCount.toString().length + 1
+                val panelW = maxOf(1, Terminal.size().dimx - appState.leftSize.value - 2 - 1 - gutterW)
                 val maxScrollX = maxOf(0, maxLineWidth - panelW)
                 scrollX.value = minOf(maxScrollX, scrollX.value + 4); return true
             }
@@ -81,7 +82,9 @@ internal class BodyTab(
         val lines = displayText.lines()
         lineCount = lines.size
         maxLineWidth = lines.maxOfOrNull { it.length } ?: 0
-        val panelWidth = maxOf(1, Terminal.size().dimx - appState.leftSize.value - 2 - 1)
+        val lineNumberWidth = lineCount.toString().length
+        val gutterWidth = lineNumberWidth + 1
+        val panelWidth = maxOf(1, Terminal.size().dimx - appState.leftSize.value - 2 - 1 - gutterWidth)
         val bodyH = maxOf(1, Terminal.size().dimy - 6)
         val visibleLines = lines.drop(scrollY.value).take(bodyH)
         val sizeInfo = buildString {
@@ -105,6 +108,9 @@ internal class BodyTab(
             ).bgcolor(beige),
             separatorEmpty(),
             hbox(
+                vbox(*visibleLines.mapIndexed { idx, _ ->
+                    text((scrollY.value + idx + 1).toString().padStart(lineNumberWidth) + " ").dim()
+                }.toTypedArray()),
                 vbox(*visibleLines.mapIndexed { idx, line ->
                     val highlighted = highlightedLines
                     if (bodyHighlighter != null && highlighted != null) {
