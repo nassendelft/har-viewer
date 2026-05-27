@@ -116,23 +116,19 @@ internal fun renderTabBar(tabSelected: Int, focusedPanel: Int, tabLabels: List<S
     val tabItems = tabLabels.mapIndexed { i, label ->
         val isActive = i == tabSelected
         when {
-            isActive && detailsFocused -> hbox(
-                text(" "),
-                text("${i + 1}").bold().underlined().color(Color.White),
-                text(" $label ").bold().color(Color.White),
-            ).bgcolor(Color.rgb(0xDAu, 0x8Eu, 0xE7u))
             isActive -> hbox(
-                text(" "),
-                text("${i + 1}").bold().underlined().color(Color.CyanLight),
-                text(" $label ").bold(),
+                text(" [ "),
+                text("${i + 1}").bold().underlined().color(Color.GreenLight),
+                text(" $label ").bold().color(if (detailsFocused) Color.CyanLight else Color.GrayDark),
+                text(" ] "),
             )
             else -> hbox(
-                text(" "),
+                text(" [ "),
                 text("${i + 1}").underlined().color(Color.GrayDark),
                 text(" $label ").color(Color.GrayDark),
+                text(" ] "),
             )
         }
     }
-    val withSeps = tabItems.flatMap { listOf(it, text(" │ ").dim()) }.dropLast(1)
-    return hbox(*withSeps.toTypedArray())
+    return hbox(*tabItems.toTypedArray())
 }
