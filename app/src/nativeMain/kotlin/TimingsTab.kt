@@ -73,8 +73,9 @@ internal class TimingsTab(private val appState: AppState) {
             }
         }
         rowCount = allRows.size
-        val timingsH = maxOf(1, Terminal.size().dimy - 8)
+        val timingsH = maxOf(1, Terminal.size().dimy - 6)
         return vbox(
+            separatorEmpty(),
             hbox(
                 text(" Diagnostics").bold().color(black),
                 text("  Total: ").color(black),

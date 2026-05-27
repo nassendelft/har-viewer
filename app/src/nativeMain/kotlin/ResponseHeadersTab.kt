@@ -57,9 +57,9 @@ internal class ResponseHeadersTab(private val appState: AppState) {
             }
         }
         rowCount = allRows.size
-        val respH = Terminal.size().dimy - 6
+        val respH = Terminal.size().dimy - 4
         return hbox(
-            vbox(*allRows.drop(scrollY.value).take(respH).toTypedArray()).flex(),
+            vbox(separatorEmpty(), *allRows.drop(scrollY.value).take(respH).toTypedArray()).flex(),
             vScrollBar(scrollY.value, allRows.size, respH),
         ).flex()
     }

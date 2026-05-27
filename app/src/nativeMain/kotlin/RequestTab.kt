@@ -83,9 +83,9 @@ internal class RequestTab(private val appState: AppState) {
             }
         }
         rowCount = allRows.size
-        val reqH = Terminal.size().dimy - 6
+        val reqH = Terminal.size().dimy - 4
         return hbox(
-            vbox(*allRows.drop(scrollY.value).take(reqH).toTypedArray()).flex(),
+            vbox(separatorEmpty(), *allRows.drop(scrollY.value).take(reqH).toTypedArray()).flex(),
             vScrollBar(scrollY.value, allRows.size, reqH),
         ).flex()
     }

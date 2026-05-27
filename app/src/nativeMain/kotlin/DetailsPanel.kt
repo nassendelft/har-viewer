@@ -31,15 +31,16 @@ internal class DetailsPanel(
             val effectiveTab = appState.tabSelected.value
             if (lastTabSelected == 4 && effectiveTab != 4) imageTab.deactivate()
             lastTabSelected = effectiveTab
-            vbox(
-                renderTabBar(appState.tabSelected.value, appState.focusedPanel.value, tabLabels),
-                separator(),
-                tabContainer.render().flex(),
-            ).flex().window(run {
-                val labelColor = if (appState.focusedPanel.value == 1) Color.CyanLight else Color.GrayDark
-                text(" details ").bold().color(labelColor)
-            })
-            .let { if (appState.focusedPanel.value != 1) it.color(Color.GrayDark) else it }
+            vbox(tabContainer.render().flex())
+                .flex()
+                .window(
+                    renderTabBar(
+                        appState.tabSelected.value,
+                        appState.focusedPanel.value,
+                        tabLabels
+                    )
+                )
+                .let { if (appState.focusedPanel.value != 1) it.color(Color.GrayDark) else it }
         }
     }
 
@@ -49,7 +50,7 @@ internal class DetailsPanel(
         val onRespHeaders = appState.tabSelected.value == 1
         val onTimings = appState.tabSelected.value == 3
         val onImage = appState.tabSelected.value == 4
-        val contentHeight = Terminal.size().dimy - 6
+        val contentHeight = Terminal.size().dimy - 4
         val prevKey = lastKey
         if (!event.isMouse) lastKey = event.input
         return when {

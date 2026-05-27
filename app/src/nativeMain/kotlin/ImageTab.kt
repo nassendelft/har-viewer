@@ -83,7 +83,7 @@ internal class ImageTab(
         }
 
         val panelW = maxOf(1, Terminal.size().dimx - appState.leftSize.value - 2 - 1)
-        val bodyH = maxOf(1, Terminal.size().dimy - 8)
+        val bodyH = maxOf(1, Terminal.size().dimy - 6)
 
         return if (kittySupported) {
             renderKitty(imageBytes, content, panelW, bodyH)

@@ -82,7 +82,7 @@ internal class BodyTab(
         lineCount = lines.size
         maxLineWidth = lines.maxOfOrNull { it.length } ?: 0
         val panelWidth = maxOf(1, Terminal.size().dimx - appState.leftSize.value - 2 - 1)
-        val bodyH = maxOf(1, Terminal.size().dimy - 8)
+        val bodyH = maxOf(1, Terminal.size().dimy - 6)
         val visibleLines = lines.drop(scrollY.value).take(bodyH)
         val sizeInfo = buildString {
             append("  ${content.size}B")
@@ -92,6 +92,7 @@ internal class BodyTab(
             if (!enc.isNullOrEmpty()) append("  $enc")
         }
         return vbox(
+            separatorEmpty(),
             hbox(
                 text(" Response Body").bold().color(black),
                 if (mimeType.isNotEmpty()) hbox(text("  "), text(mimeType).color(black).underlined()) else text(""),
