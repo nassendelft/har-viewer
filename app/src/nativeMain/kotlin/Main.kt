@@ -24,11 +24,10 @@ fun main(args: Array<String>) {
     val responseHeadersTab = ResponseHeadersTab(appState)
     val bodyTab = BodyTab(appState, bgScope) { appRef?.requestAnimationFrame() }
     val timingsTab = TimingsTab(appState)
-    val imageTab = ImageTab(appState, bgScope) { appRef?.requestAnimationFrame() }
     val requestListPanel = RequestListPanel(appState)
 
     val requestPanel = requestListPanel.build()
-    val detailsPanelCtrl = DetailsPanel(appState, requestTab, responseHeadersTab, bodyTab, timingsTab, imageTab)
+    val detailsPanelCtrl = DetailsPanel(appState, requestTab, responseHeadersTab, bodyTab, timingsTab)
     val detailsPanel = detailsPanelCtrl.build()
 
     val panelRouter = tab(appState.focusedPanel)
@@ -50,7 +49,6 @@ fun main(args: Array<String>) {
             event.isKey("2") && !searchActive -> { appState.tabSelected.value = 1; appState.focusedPanel.value = 1; true }
             event.isKey("3") && !searchActive -> { appState.tabSelected.value = 2; appState.focusedPanel.value = 1; true }
             event.isKey("4") && !searchActive -> { appState.tabSelected.value = 3; appState.focusedPanel.value = 1; true }
-            event.isKey("5") && !searchActive -> { appState.tabSelected.value = 4; appState.focusedPanel.value = 1; true }
             onDetails -> detailsPanelCtrl.handleEvent(event)
             else -> false
         }
@@ -65,7 +63,6 @@ fun main(args: Array<String>) {
     requestTab.free()
     responseHeadersTab.free()
     timingsTab.free()
-    imageTab.free()
     requestListPanel.free()
     appState.free()
 }
