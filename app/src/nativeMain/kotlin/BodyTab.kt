@@ -122,14 +122,14 @@ internal class BodyTab(
             decodeJob = null
         }
         val panelW = maxOf(1, Terminal.size().dimx - appState.leftSize.value - 2 - 1)
-        val bodyH = maxOf(1, Terminal.size().dimy - 6)
+        val bodyH = maxOf(1, Terminal.size().dimy - 4)
         return if (kittySupported) renderKitty(imageBytes, content, panelW, bodyH)
         else {
             val image = decodedImage
             when {
                 image != null -> renderHalfBlock(image, content, panelW, bodyH)
-                decodeJob != null -> vbox(separatorEmpty(), renderImageHeader(content, null, null), separatorEmpty(), text("  Decoding image…").dim().flex()).flex()
-                else -> vbox(separatorEmpty(), renderImageHeader(content, null, null), separatorEmpty(), text("  Unable to decode image").dim().flex()).flex()
+                decodeJob != null -> vbox(separatorEmpty(), renderImageHeader(content, null, null), text("  Decoding image…").dim().flex()).flex()
+                else -> vbox(separatorEmpty(), renderImageHeader(content, null, null), text("  Unable to decode image").dim().flex()).flex()
             }
         }
     }
@@ -218,20 +218,19 @@ internal class BodyTab(
     private fun renderKitty(bytes: ByteArray?, content: Content, panelW: Int, bodyH: Int): Element {
         val header = renderImageHeader(content, null, null)
         if (bytes == null) {
-            return vbox(separatorEmpty(), header, separatorEmpty(), text("  Unable to decode image").dim().flex()).flex()
+            return vbox(header, separatorEmpty(), text("  Unable to decode image").dim().flex()).flex()
         }
         if (!kittyUploaded) {
             kittyImageId = (kittyImageId % 9999) + 1
             uploadKittyImage(bytes, kittyImageId)
             kittyUploaded = true
         }
-        val imageRow = 6
+        val imageRow = 4
         val imageCol = appState.leftSize.value + 2
         writeToStdout("${ESC}[${imageRow};${imageCol}H${ESC}_Ga=p,q=2,i=$kittyImageId,c=$panelW,r=$bodyH,z=0$ST")
         return vbox(
             separatorEmpty(),
             header,
-            separatorEmpty(),
             vbox(*(0 until bodyH).map { text("") }.toTypedArray()).flex(),
         ).flex()
     }
@@ -271,7 +270,6 @@ internal class BodyTab(
         return vbox(
             separatorEmpty(),
             renderImageHeader(content, image.width, image.height),
-            separatorEmpty(),
             hbox(
                 vbox(*imageElements.toTypedArray()).flex(),
                 vScrollBar(scrollY.value, termRows, bodyH),
@@ -333,7 +331,7 @@ internal class BodyTab(
     }
 }
 
-internal fun isImageContent(content: har.Content, requestUrl: String = ""): Boolean {
+internal fun isImageContent(content: Content, requestUrl: String = ""): Boolean {
     val mime = content.mimeType.substringBefore(';').trim().lowercase()
     return mime.startsWith("image/")
         || content.text?.startsWith("data:image/") == true
