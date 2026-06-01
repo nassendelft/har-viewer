@@ -38,7 +38,7 @@ internal class DetailsPanel(
     fun handleEvent(event: FtxUIEvent): Boolean {
         val contentHeight = Terminal.size().dimy - 4
         val prevKey = lastKey
-        if (!event.isMouse) lastKey = event.input
+        if (event !is FtxUIEvent.Mouse) lastKey = event.input
         return when (appState.tabSelected.value) {
             0 -> requestTab.handleScrollEvent(event, prevKey, contentHeight)
             1 -> responseHeadersTab.handleScrollEvent(event, prevKey, contentHeight)

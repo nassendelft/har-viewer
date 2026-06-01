@@ -83,9 +83,9 @@ internal class BodyTab(
 
     fun free() {
         deactivate()
-        scrollX.free()
-        scrollY.free()
-        prettify.free()
+        scrollX.close()
+        scrollY.close()
+        prettify.close()
     }
 
     private fun render(): Element {

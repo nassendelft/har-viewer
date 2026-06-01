@@ -11,7 +11,7 @@ internal class TimingsTab(private val appState: AppState) {
     fun handleScrollEvent(event: FtxUIEvent, prevKey: String, contentHeight: Int): Boolean =
         handleScrollEvents(event, prevKey, scrollY, rowCount, contentHeight)
 
-    fun free() = scrollY.free()
+    fun free() = scrollY.close()
 
     private fun render(): Element {
         val idx = appState.selectedEntry.value

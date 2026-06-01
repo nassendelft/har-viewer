@@ -29,14 +29,14 @@ internal class RequestListPanel(private val appState: AppState) {
                 val listPageSize = maxOf(1, Terminal.size().dimy - 6)
                 val halfListPage = maxOf(1, listPageSize / 2)
                 val prevReqKey = lastKey
-                if (!event.isMouse && !isSearchFocused) lastKey = event.input
+                if (event !is FtxUIEvent.Mouse && !isSearchFocused) lastKey = event.input
                 fun moveBy(delta: Int) {
                     if (filtered.isEmpty()) return
                     val target = (currentPos + delta).coerceIn(0, filtered.size - 1)
                     appState.selectedEntry.value = filtered[target].first
                 }
                 when {
-                    event.isMouse -> true
+                    event is FtxUIEvent.Mouse -> true
                     event.isKey("/") && !isSearchFocused -> { leftSubFocus.value = 1; true }
                     event.isKey(Key.Escape) && isSearchFocused -> { leftSubFocus.value = 0; true }
                     event.isKey(Key.Return) && isSearchFocused -> { leftSubFocus.value = 0; true }
@@ -81,9 +81,9 @@ internal class RequestListPanel(private val appState: AppState) {
     }
 
     fun free() {
-        hScrollOffset.free()
-        leftSubFocus.free()
-        searchQuery.free()
+        hScrollOffset.close()
+        leftSubFocus.close()
+        searchQuery.close()
     }
 
     private fun getFilteredEntries(): List<Pair<Int, har.Entry>> {

@@ -64,5 +64,5 @@ fun main(args: Array<String>) {
     responseHeadersTab.free()
     timingsTab.free()
     requestListPanel.free()
-    appState.free()
+    appState.close()
 }

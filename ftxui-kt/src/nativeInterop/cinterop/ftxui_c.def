@@ -1,6 +1,0 @@
-headers = ftxui_c_api.h
-package = ftxui_c
-staticLibraries = libftxui_c_binding.a libftxui-component.a libftxui-dom.a libftxui-screen.a
-
-linkerOpts.linux_x64 = /usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a -lm
-linkerOpts.linux_arm64 = /usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a /usr/lib/gcc-cross/aarch64-linux-gnu/11/libgcc.a -lm

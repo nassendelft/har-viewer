@@ -7,11 +7,11 @@ internal class AppState(val entries: List<har.Entry>) {
     val focusedPanel  = IntState(0)
     val filterState   = FilterState(entries.map { it.request.method })
 
-    fun free() {
-        selectedEntry.free()
-        tabSelected.free()
-        leftSize.free()
-        focusedPanel.free()
-        filterState.free()
+    fun close() {
+        selectedEntry.close()
+        tabSelected.close()
+        leftSize.close()
+        focusedPanel.close()
+        filterState.close()
     }
 }

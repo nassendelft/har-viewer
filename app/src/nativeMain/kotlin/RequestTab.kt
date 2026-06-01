@@ -19,7 +19,7 @@ internal class RequestTab(private val appState: AppState) {
         return handleScrollEvents(event, prevKey, scrollY, rowCount, contentHeight)
     }
 
-    fun free() { scrollY.free(); showRawBody.free() }
+    fun free() { scrollY.close(); showRawBody.close() }
 
     private fun render(): Element {
         val idx = appState.selectedEntry.value

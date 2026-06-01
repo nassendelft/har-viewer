@@ -8,9 +8,9 @@ internal class FilterState(methods: List<String>) {
 
     val isActive get() = methodStates.any { it.value.value } || typeStates.any { it.value.value }
 
-    fun free() {
-        showModal.free()
-        methodStates.values.forEach { it.free() }
-        typeStates.values.forEach { it.free() }
+    fun close() {
+        showModal.close()
+        methodStates.values.forEach { it.close() }
+        typeStates.values.forEach { it.close() }
     }
 }
