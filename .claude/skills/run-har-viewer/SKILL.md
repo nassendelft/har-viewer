@@ -11,19 +11,26 @@ All paths below are relative to the repo root (`har-viewer/`).
 
 ## Prerequisites
 
-- macOS (Apple Silicon) — the built binary targets `macosArm64`
-- `tmux` (available at `/opt/homebrew/bin/tmux` on this machine)
+- macOS (Apple Silicon/x86) or Linux x86-64
+- `tmux`
 - JDK 17+ and a C toolchain (only needed to rebuild)
+- Linux only: `sudo apt-get install -y cmake build-essential libstdc++-11-dev`
 
 ## Build
 
-A release binary is already present. To rebuild:
+Rebuild for the current platform (the driver picks the right binary automatically):
 
 ```sh
+# macOS Apple Silicon
 ./gradlew :app:linkReleaseExecutableMacosArm64
+
+# Linux x86-64
+./gradlew :app:linkReleaseExecutableLinuxX64
 ```
 
-Output: `app/build/bin/macosArm64/releaseExecutable/app.kexe`
+Outputs:
+- `app/build/bin/macosArm64/releaseExecutable/app.kexe`
+- `app/build/bin/linuxX64/releaseExecutable/app.kexe`
 
 ## Run (agent path)
 
@@ -76,7 +83,10 @@ cat /tmp/body.txt
 ## Run (human path)
 
 ```sh
+# macOS
 app/build/bin/macosArm64/releaseExecutable/app.kexe test.har
+# Linux
+app/build/bin/linuxX64/releaseExecutable/app.kexe test.har
 ```
 
 A window-filling TUI appears. Press `q` or Ctrl+C to exit. Not useful headless.
@@ -109,4 +119,6 @@ A window-filling TUI appears. Press `q` or Ctrl+C to exit. Not useful headless.
 
 **Keys have no effect** — add a `sleep 0.5` after `start` if startup is slow; the app may still be rendering.
 
-**Build fails: `libstb_image.a` missing** — the `buildStbImage` task runs `cc` to compile the C source. Ensure a C compiler is on `PATH`. On macOS: `xcode-select --install`.
+**Build fails: `libstb_image.a` missing** — the `buildStbImage` task runs `cc` to compile the C source. Ensure a C compiler is on `PATH`. macOS: `xcode-select --install`. Linux: `sudo apt-get install -y cmake build-essential`.
+
+**Linux: `libstdc++.a` not found** — the linker needs the static C++ stdlib at `/usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a`. Install with `sudo apt-get install -y libstdc++-11-dev`.

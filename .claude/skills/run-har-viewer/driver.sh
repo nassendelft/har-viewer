@@ -4,7 +4,18 @@
 set -euo pipefail
 
 SESSION="har-viewer-driver"
-BINARY="app/build/bin/macosArm64/releaseExecutable/app.kexe"
+
+_os=$(uname -s)
+_arch=$(uname -m)
+if [[ "$_os" == "Darwin" && "$_arch" == "arm64" ]]; then
+  BINARY="app/build/bin/macosArm64/releaseExecutable/app.kexe"
+elif [[ "$_os" == "Darwin" ]]; then
+  BINARY="app/build/bin/macosX64/releaseExecutable/app.kexe"
+elif [[ "$_os" == "Linux" ]]; then
+  BINARY="app/build/bin/linuxX64/releaseExecutable/app.kexe"
+else
+  echo "Unsupported OS: $_os $_arch" >&2; exit 1
+fi
 
 cmd="${1:-help}"
 shift || true
