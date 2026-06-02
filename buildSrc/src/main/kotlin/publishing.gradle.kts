@@ -13,14 +13,21 @@ version = publishVersionProp?.toString()
 
 publishing {
     publications.withType<MavenPublication>().all {
-        // generate empty javadoc jar files to satisfy sonatype requirements
+        // generate javadoc and sources jars to satisfy sonatype requirements
         // https://central.sonatype.org/publish/requirements/#supply-javadoc-and-sources
         val javaDocTask = tasks.register<Jar>("javaDoc${name.capitalize()}") {
             archiveBaseName.set("${project.name}-${name.capitalize()}")
             archiveClassifier.set("javadoc")
         }
 
+        val sourcesTask = tasks.register<Jar>("sources${name.capitalize()}") {
+            archiveBaseName.set("${project.name}-${name.capitalize()}")
+            archiveClassifier.set("sources")
+            from(project.fileTree("src") { include("**/*.kt") })
+        }
+
         artifact(javaDocTask)
+        artifact(sourcesTask)
         pom {
             name.set("${groupId}:${artifactId}")
             description.set("Har file viewer")
