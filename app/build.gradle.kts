@@ -10,7 +10,6 @@ val nativeTargetName = (findProperty("native.target") as String?)
     ?: when {
         hostOs.startsWith("Mac") && hostArch == "aarch64" -> "macosArm64"
         hostOs.startsWith("Mac") -> "macosX64"
-        hostOs.startsWith("Linux") && hostArch == "aarch64" -> "linuxArm64"
         hostOs.startsWith("Linux") -> "linuxX64"
         else -> error("Unsupported host OS: $hostOs ($hostArch)")
     }
@@ -23,10 +22,7 @@ tasks.register<Exec>("buildStbImage") {
     inputs.files(srcFile, hFile)
     outputs.file(stbImageBuildDir.resolve("libstb_image.a"))
     doFirst { stbImageBuildDir.mkdirs() }
-    val cc = when {
-        nativeTargetName == "linuxArm64" && hostArch != "aarch64" -> "aarch64-linux-gnu-gcc"
-        else -> "cc"
-    }
+    val cc = "cc"
     commandLine(
         "bash", "-c",
         "$cc -c ${srcFile.absolutePath} -o ${stbImageBuildDir}/stb_image_impl.o && " +
@@ -37,19 +33,13 @@ tasks.register<Exec>("buildStbImage") {
 kotlin {
     val nativeTarget = when (nativeTargetName) {
         "macosArm64" -> macosArm64()
-        "linuxArm64" -> linuxArm64()
         "linuxX64" -> linuxX64()
         else -> error("Unsupported target: $nativeTargetName")
     }
 
     nativeTarget.binaries.executable {
-        when (nativeTargetName) {
-            "linuxX64" -> linkerOpts("/usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a", "-lm")
-            "linuxArm64" -> linkerOpts(
-                "/usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a",
-                "/usr/lib/gcc-cross/aarch64-linux-gnu/11/libgcc.a",
-                "-lm"
-            )
+        if (nativeTargetName == "linuxX64") {
+            linkerOpts("/usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.a", "-lm")
         }
     }
 

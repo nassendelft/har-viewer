@@ -38,46 +38,6 @@ jobs:
           name: har-viewer-macos-arm64
           path: app/build/bin/macosArm64/releaseExecutable/har-view
 
-  build-linux-arm64:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libstdc++-11-dev-arm64-cross
-
-      - name: Verify ARM64 static libraries
-        run: |
-          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/libstdc++.a
-          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/libatomic.a
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.konan
-          key: gradle-linux-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-linux-
-
-      - name: Build
-        run: ./gradlew :app:linkReleaseExecutableLinuxArm64 -Pnative.target=linuxArm64
-
-      - name: Rename binary
-        run: mv app/build/bin/linuxArm64/releaseExecutable/app.kexe app/build/bin/linuxArm64/releaseExecutable/har-view
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: har-viewer-linux-arm64
-          path: app/build/bin/linuxArm64/releaseExecutable/har-view
-
   build-linux-x64:
     runs-on: ubuntu-22.04
     steps:

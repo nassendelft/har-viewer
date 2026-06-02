@@ -18,7 +18,6 @@ brew install har-viewer
 Pre-built binaries are available on the [releases page](https://github.com/nassendelft/har-viewer/releases) for:
 
 - macOS (Apple Silicon)
-- Linux ARM64
 - Linux x86-64
 
 ## Usage
@@ -69,7 +68,6 @@ git clone --recurse-submodules https://github.com/nassendelft/har-viewer.git
 cd har-viewer
 ./gradlew :app:linkReleaseExecutableMacosArm64   # macOS Apple Silicon
 ./gradlew :app:linkReleaseExecutableLinuxX64      # Linux x86-64
-./gradlew :app:linkReleaseExecutableLinuxArm64 -Pnative.target=linuxArm64  # Linux ARM64
 ```
 
 The binary is written to `app/build/bin/<target>/releaseExecutable/app.kexe`.
